@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}记录查询 - 电子技术创新实验室{% endblock %}
+{% block page_title %}库存记录查询{% endblock %}
+
+{% block content %}
+<div class="filter-panel">
+    <form method="GET" class="row g-3">
+        <div class="col-md-2">
+            <label class="form-label small">操作人</label>
+            <select name="user_id" class="form-select">
+                <option value="0">全部</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if filters.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">类型</label>
+            <select name="type" class="form-select">
+                <option value="">全部</option>
+                <option value="in" {% if filters.type == 'in' %}selected{% endif %}>入库</option>
+                <option value="out" {% if filters.type == 'out' %}selected{% endif %}>出库</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">器材</label>
+            <select name="equipment_id" class="form-select">
+                <option value="0">全部</option>
+                {% for eq in equipments %}
+                <option value="{{ eq.id }}" {% if filters.equipment_id == eq.id %}selected{% endif %}>{{ eq.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">分类</label>
+            <select name="category_id" class="form-select">
+                <option value="0">全部</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if filters.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">开始日期</label>
+            <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small">结束日期</label>
+            <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> 查询</button>
+            <a href="{{ url_for('records.index') }}" class="btn btn-outline-secondary ms-2">重置</a>
+            <span class="text-muted ms-3 small">共 {{ records.total }} 条记录</span>
+        </div>
+    </form>
+</div>
+
+<div class="table-container mt-3">
+    <table class="table table-hover table-sm">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>类型</th>
+                <th>器材</th>
+                <th>数量</th>
+                <th>操作前库存</th>
+                <th>操作后库存</th>
+                <th>操作人</th>
+                <th>备注</th>
+                {% if current_user.is_admin %}<th style="width:40px"></th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records.items %}
+            <tr>
+                <td class="text-muted small">{{ r.created_at | localdate }}</td>
+                <td>
+                    <span class="badge {% if r.type == 'in' %}badge-in{% else %}badge-out{% endif %}">
+                        {{ r.type_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="fw-medium">{{ r.equipment.name }}</span>
+                    <div class="text-muted small">{{ r.equipment.model or '' }}</div>
+                </td>
+                <td>{{ r.quantity }} {{ r.equipment.unit }}</td>
+                <td>{{ r.before_stock }}</td>
+                <td>{{ r.after_stock }}</td>
+                <td class="text-muted">{{ r.user.username }}</td>
+                <td class="text-muted small">{{ r.remark or '-' }}</td>
+                {% if current_user.is_admin %}
+                <td>
+                    <form method="POST" action="{{ url_for('records.delete_record', id=r.id) }}" class="d-inline"
+                          onsubmit="return confirm('确定删除 {{ r.user.username }} 的{{ r.type_display }}记录「{{ r.equipment.name }}」×{{ r.quantity }}{{ r.equipment.unit }}？\\n\\n这也会回退库存，此操作不可撤销。')">
+                        <button class="btn btn-sm btn-outline-danger record-delete-btn" title="删除此记录"><i class="bi bi-x-circle"></i></button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ '9' if current_user.is_admin else '8' }}">
+                    <div class="empty-state"><i class="bi bi-search text-muted"></i><p>没有匹配的记录</p></div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if records.pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not records.has_prev }}">
+            <a class="page-link" href="{{ url_for('records.index', page=records.prev_num, **filters) if records.has_prev else '#' }}">上一页</a>
+        </li>
+        {% for p in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {{ 'active' if p == records.page }}">
+                <a class="page-link" href="{{ url_for('records.index', page=p, **filters) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not records.has_next }}">
+            <a class="page-link" href="{{ url_for('records.index', page=records.next_num, **filters) if records.has_next else '#' }}">下一页</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

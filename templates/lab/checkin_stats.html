@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}签到统计 - 电子技术创新实验室{% endblock %}
+{% block page_title %}签到统计{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('lab.checkin') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 返回签到</a>
+{% endblock %}
+
+{% block extra_head %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<!-- 时间段选择 -->
+<div class="filter-bar">
+  <div class="time-chips" id="timeChips">
+    <span class="time-chip" data-period="week">近一周</span>
+    <span class="time-chip active" data-period="month">近一月</span>
+    <span class="time-chip" data-period="2month">近两月</span>
+    <span class="time-chip" data-period="3month">近三月</span>
+    <span class="time-custom">
+      <input type="date" id="dateFrom" value="{{ date_from }}" class="form-control form-control-sm">
+      <span class="text-muted">—</span>
+      <input type="date" id="dateTo" value="{{ date_to }}" class="form-control form-control-sm">
+    </span>
+    <button class="btn btn-sm btn-outline-primary" onclick="applyCustomRange()">查询</button>
+  </div>
+</div>
+
+<!-- 横向标签 -->
+<div class="h-tabs" id="mainTabs">
+  <span class="h-tab active" data-tab="overview">总览</span>
+  <span class="h-tab" data-tab="ranking">时长排名</span>
+  <span class="h-tab" data-tab="daily">每日明细</span>
+</div>
+
+<!-- ═══ 总览面板 ═══ -->
+<div class="tab-panel" id="panel-overview">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">{{ person_stats|length }}</div><div class="stat-label">签到人数</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">{{ total_days }}</div><div class="stat-label">统计天数</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value">{{ avg_daily }}</div><div class="stat-label">日均在线(分钟)</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value">{{ avg_per_person }}</div><div class="stat-label">人均在线(分钟)</div></div></div>
+  </div>
+
+  <div class="dash-panel">
+    <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
+    {% if person_stats %}
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
+        <tbody>
+          {% for name, ps in person_stats.items() %}
+          <tr class="member-row" onclick="openMemberDetail('{{ name }}', {{ ps.user_id }})" title="点击查看 {{ name }} 的每日明细">
+            <td class="fw-medium">{{ name }}</td>
+            <td>{{ ps.days }} 天</td>
+            <td>{{ ps.total_min }} 分钟</td>
+            <td>{{ ps.get('avg_min', (ps.total_min // (ps.days if ps.days > 0 else 1))) }} 分钟</td>
+            <td>{{ ps.count }} 次</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>{% else %}<div class="empty-state"><p>暂无数据</p></div>{% endif %}
+  </div>
+</div>
+
+<!-- ═══ 排名面板 ═══ -->
+<div class="tab-panel" id="panel-ranking" style="display:none">
+  <h6 class="fw-bold mb-3">在线时长排名 <span class="badge bg-secondary ms-1" id="rankingPeriodLabel">近一月</span></h6>
+  <div class="rank-list mb-3" id="rankingList"></div>
+  <p class="text-muted small"><i class="bi bi-info-circle"></i> 排名基于选中时间段内的累计在线时长 · 点击成员可查看每日明细</p>
+</div>
+
+<!-- ═══ 每日明细面板 ═══ -->
+<div class="tab-panel" id="panel-daily" style="display:none">
+  <div class="dash-grid">
+    <div class="dash-panel">
+      <div class="panel-head"><i class="bi bi-graph-up"></i><span>每日总在线趋势</span></div>
+      <div class="p-3"><canvas id="dailyChart" height="200"></canvas></div>
+    </div>
+    <div class="dash-panel">
+      <div class="panel-head"><i class="bi bi-bar-chart"></i><span>按人总时长</span></div>
+      <div class="p-3"><canvas id="barChart" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="dash-panel mt-3">
+    <div class="panel-head"><i class="bi bi-list-ul"></i><span>签到时段明细</span><span class="badge bg-secondary ms-2" id="logCount">{{ logs|length }} 条</span></div>
+    {% if logs %}
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>日期</th><th>成员</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+        <tbody>{% for log in logs %}<tr><td class="text-muted small">{{ log.attendance.date.strftime('%m-%d') }}</td><td>{{ log.attendance.user.username }}</td><td>{{ log.sign_in_time | localtime }}</td><td>{{ log.sign_out_time | localtime if log.sign_out_time else '—' }}</td><td>{{ log.duration_minutes }} 分钟</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>{% else %}<div class="empty-state py-2"><p>暂无记录</p></div>{% endif %}
+  </div>
+</div>
+
+<!-- 成员详情弹窗 -->
+<div class="modal-overlay" id="memberModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h5 class="fw-bold mb-0"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
+      <button class="modal-close" onclick="closeMemberModal()">&times;</button>
+    </div>
+    <div class="time-chips mb-3" id="modalTimeChips">
+      <span class="time-chip" data-period="week">近一周</span>
+      <span class="time-chip active" data-period="month">近一月</span>
+      <span class="time-chip" data-period="2month">近两月</span>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长(分钟)</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均(分钟)</small></div></div>
+    </div>
+    <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+        <tbody id="modalLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ═══════════════ State ═══════════════
+let currentPeriod = 'month';
+let currentTab = 'overview';
+let currentMemberName = null;
+let currentMemberId = null;
+
+// Pre-loaded data from server (no AJAX needed)
+const RANKING_DATA = {{ ranking_json | tojson }};
+const MEMBER_DETAILS = {{ member_details_json | tojson }};
+
+// ═══════════════ Time period chips ═══════════════
+document.getElementById('timeChips').addEventListener('click', function(e) {
+  if (e.target.classList.contains('time-chip')) {
+    this.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    currentPeriod = e.target.dataset.period;
+    updateDateInputs();
+    refreshCurrentTab();
+  }
+});
+
+function updateDateInputs() {
+  const today = new Date();
+  const d = (o) => { const r = new Date(o); return r.toISOString().slice(0,10); };
+  let from = new Date(today);
+  switch (currentPeriod) {
+    case 'week': from.setDate(today.getDate() - 7); break;
+    case 'month': from.setMonth(today.getMonth() - 1); break;
+    case '2month': from.setMonth(today.getMonth() - 2); break;
+    case '3month': from.setMonth(today.getMonth() - 3); break;
+    default: return;
+  }
+  document.getElementById('dateFrom').value = d(from);
+  document.getElementById('dateTo').value = d(today);
+}
+
+function applyCustomRange() {
+  currentPeriod = 'custom';
+  document.querySelectorAll('#timeChips .time-chip').forEach(c => c.classList.remove('active'));
+  refreshCurrentTab();
+}
+
+function getDateRange() {
+  return {
+    from: document.getElementById('dateFrom').value,
+    to: document.getElementById('dateTo').value
+  };
+}
+
+// ═══════════════ Tab switching ═══════════════
+document.getElementById('mainTabs').addEventListener('click', function(e) {
+  if (e.target.classList.contains('h-tab')) {
+    this.querySelectorAll('.h-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentTab = e.target.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById('panel-' + currentTab).style.display = '';
+    refreshCurrentTab();
+  }
+});
+
+function refreshCurrentTab() {
+  if (currentTab === 'ranking') renderRanking();
+  if (currentTab === 'daily') loadDailyCharts(getDateRange());
+}
+
+// ═══════════════ Ranking ═══════════════
+function renderRanking() {
+  const list = document.getElementById('rankingList');
+  if (!RANKING_DATA || RANKING_DATA.length === 0) {
+    list.innerHTML = '<div class="empty-state py-4"><p>该时间段暂无数据</p></div>';
+    return;
+  }
+  const rc = (r) => r === 1 ? 'rank-1' : r === 2 ? 'rank-2' : r === 3 ? 'rank-3' : 'rank-other';
+  list.innerHTML = RANKING_DATA.map((m, i) => {
+    const r = i + 1;
+    const name = (m.username || '').replace(/'/g, "\\'");
+    return `<div class="rank-item" onclick="openMemberDetail('${name}', ${m.user_id})">
+      <span class="rank-badge ${rc(r)}">${r}</span>
+      <div class="rank-info"><div class="rank-name">${m.username}</div><div class="rank-detail">到勤 ${m.days} 天 · 平均 ${m.avg_minutes} 分钟/天</div></div>
+      <span class="rank-time">${m.total_minutes.toLocaleString()} 分钟</span>
+    </div>`;
+  }).join('');
+  document.getElementById('rankingPeriodLabel').textContent =
+    {week:'近一周',month:'近一月','2month':'近两月','3month':'近三月',custom:'自定义'}[currentPeriod] || '近一月';
+}
+
+// ═══════════════ Daily charts ═══════════════
+function loadDailyCharts(range) {
+  fetch(`/lab/checkin/stats?json=chart&from=${range.from}&to=${range.to}`)
+  .then(r => r.json()).then(data => {
+    const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#6366f1'];
+
+    // Destroy existing charts
+    Chart.getChart('dailyChart')?.destroy();
+    Chart.getChart('barChart')?.destroy();
+
+    new Chart(document.getElementById('dailyChart'), {
+      type: 'line', data: {
+        labels: data.daily.labels,
+        datasets: [{
+          label: '总在线时长（分钟）', data: data.daily.data,
+          borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.06)',
+          fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#2563eb'
+        }]
+      }, options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar', data: {
+        labels: data.person.labels,
+        datasets: [{
+          label: '总分钟', data: data.person.data,
+          backgroundColor: data.person.labels.map((_,i) => colors[i%colors.length]),
+          borderRadius: 6
+        }]
+      }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+    });
+  });
+}
+
+// ═══════════════ Member detail modal ═══════════════
+function openMemberDetail(name, userId) {
+  currentMemberName = name;
+  currentMemberId = userId;
+  document.getElementById('modalMemberName').textContent = name;
+  document.getElementById('memberModal').style.display = 'flex';
+  loadMemberDetail(userId);
+}
+
+document.getElementById('modalTimeChips').addEventListener('click', function(e) {
+  if (e.target.classList.contains('time-chip') && currentMemberId) {
+    this.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    loadMemberDetail(currentMemberId, e.target.dataset.period);
+  }
+});
+
+function loadMemberDetail(userId, period) {
+  if (!userId) {
+    document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>无法获取用户信息</p></div></td></tr>';
+    return;
+  }
+  const data = MEMBER_DETAILS[String(userId)];
+  if (!data) {
+    document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无该成员数据</p></div></td></tr>';
+    document.getElementById('modalDays').textContent = '—';
+    document.getElementById('modalTotal').textContent = '—';
+    document.getElementById('modalAvg').textContent = '—';
+    return;
+  }
+
+  document.getElementById('modalDays').textContent = data.days + ' 天';
+  document.getElementById('modalTotal').textContent = data.total_minutes.toLocaleString() + ' 分钟';
+  document.getElementById('modalAvg').textContent = data.avg_minutes + ' 分钟';
+
+  document.getElementById('modalLogBody').innerHTML = data.daily.map(d =>
+    `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : d.minutes + ' 分钟'}</td></tr>`
+  ).join('') || '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无记录</p></div></td></tr>';
+
+  // Mini chart
+  setTimeout(() => {
+    const canvas = document.getElementById('modalDailyChart');
+    if (!canvas) return;
+    Chart.getChart('modalDailyChart')?.destroy();
+    const reversed = [...data.daily].reverse();
+    if (reversed.length === 0) return;
+    new Chart(canvas, {
+      type: 'bar', data: {
+        labels: reversed.map(d => d.date),
+        datasets: [{
+          label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
+          backgroundColor: reversed.map(() => {
+            const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
+            return gradient;
+          }),
+          borderRadius: 6
+        }]
+      }, options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }, 100);
+}
+
+function closeMemberModal() {
+  document.getElementById('memberModal').style.display = 'none';
+  currentMemberName = null;
+  currentMemberId = null;
+}
+document.getElementById('memberModal').addEventListener('click', function(e) {
+  if (e.target === this || e.target.classList.contains('modal-overlay')) closeMemberModal();
+});
+
+// ═══════════════ Initialize ═══════════════
+document.addEventListener('DOMContentLoaded', function() {
+  // Load charts on daily tab if it's visible initially (it isn't — overview is default)
+});
+</script>
+{% endblock %}

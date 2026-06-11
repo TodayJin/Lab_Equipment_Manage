@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}器材管理 - 电子技术创新实验室{% endblock %}
+{% block page_title %}器材管理{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+    <form method="GET" class="row g-2 align-items-end" id="filterForm">
+        <div class="col-md-3">
+            <div class="input-group" id="quickSearch">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="输入即搜..." value="{{ search }}" autocomplete="off">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <select name="category_id" class="form-select">
+                <option value="0">全部分类</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if current_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary">筛选</button>
+            <a href="{{ url_for('equipment.index') }}" class="btn btn-outline-secondary">重置</a>
+        </div>
+        <div class="col-auto ms-auto">
+            <a href="{{ url_for('equipment.new') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增器材
+            </a>
+        </div>
+        <input type="hidden" name="sort" value="{{ current_sort }}">
+        <input type="hidden" name="dir" value="{{ current_dir }}">
+    </form>
+</div>
+
+<div class="table-container">
+    <table class="table table-hover" id="equipmentTable">
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="name">
+                    器材名称 {% if current_sort == 'name' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th class="sortable" data-sort="model">
+                    型号 {% if current_sort == 'model' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th class="sortable" data-sort="packaging">
+                    封装 {% if current_sort == 'packaging' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th class="sortable" data-sort="category">
+                    分类 {% if current_sort == 'category' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th class="sortable" data-sort="stock">
+                    库存 {% if current_sort == 'stock' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th>单位</th>
+                <th class="sortable" data-sort="threshold">
+                    预警 {% if current_sort == 'threshold' %}<i class="bi bi-caret-{{ 'up' if current_dir == 'asc' else 'down' }}-fill"></i>{% endif %}
+                </th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eq in equipments.items %}
+            <tr class="{% if eq.is_low_stock %}row-warning{% endif %}">
+                <td>
+                    <span class="fw-medium">{{ eq.name }}</span>
+                    {% if eq.is_low_stock %}<span class="badge bg-danger ms-1" title="库存不足">!</span>{% endif %}
+                </td>
+                <td class="text-muted">{{ eq.model or '-' }}</td>
+                <td class="text-muted">{{ eq.packaging or '-' }}</td>
+                <td>{{ eq.category.name if eq.category else '-' }}</td>
+                <td><span class="{% if eq.is_low_stock %}text-danger fw-bold{% endif %}">{{ eq.stock_quantity }}</span></td>
+                <td>{{ eq.unit }}</td>
+                <td>{{ eq.alert_threshold }}</td>
+                <td>
+                    <a href="{{ url_for('equipment.edit', id=eq.id) }}" class="btn btn-sm btn-outline-secondary" title="编辑"><i class="bi bi-pencil"></i></a>
+                    {% if current_user.is_admin %}
+                    <form method="POST" action="{{ url_for('equipment.delete', id=eq.id) }}" class="d-inline"
+                          onsubmit="return confirm('确定删除「{{ eq.name }}」吗？此操作不可恢复。')">
+                        <button class="btn btn-sm btn-outline-danger" title="删除"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8"><div class="empty-state"><i class="bi bi-inbox text-muted"></i><p>暂无器材</p></div></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if equipments.pages > 1 %}
+<nav><ul class="pagination justify-content-center">
+    <li class="page-item {{ 'disabled' if not equipments.has_prev }}">
+        <a class="page-link" href="?page={{ equipments.prev_num }}&search={{ search }}&category_id={{ current_category }}&sort={{ current_sort }}&dir={{ current_dir }}" {% if not equipments.has_prev %}tabindex="-1"{% endif %}>上一页</a>
+    </li>
+    {% for p in equipments.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}<li class="page-item {{ 'active' if p == equipments.page }}"><a class="page-link" href="?page={{ p }}&search={{ search }}&category_id={{ current_category }}&sort={{ current_sort }}&dir={{ current_dir }}">{{ p }}</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not equipments.has_next }}">
+        <a class="page-link" href="?page={{ equipments.next_num }}&search={{ search }}&category_id={{ current_category }}&sort={{ current_sort }}&dir={{ current_dir }}" {% if not equipments.has_next %}tabindex="-1"{% endif %}>下一页</a>
+    </li>
+</ul></nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Quick search with composition-aware debounce
+let searchTimer;
+let composing = false;
+const searchInput = document.querySelector('#quickSearch input');
+const filterForm = document.getElementById('filterForm');
+
+searchInput.addEventListener('compositionstart', function() { composing = true; });
+searchInput.addEventListener('compositionend', function() {
+    composing = false;
+    // Don't submit here — the final input event fires next with composing=false
+});
+searchInput.addEventListener('input', function() {
+    if (composing) return;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() {
+        filterForm.submit();
+    }, 500);
+});
+
+// Auto-focus search input after page load
+if (searchInput.value) {
+    searchInput.focus();
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+}
+
+// Sortable columns
+document.querySelectorAll('.sortable').forEach(function(th) {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', function() {
+        const sortField = this.dataset.sort;
+        const currentSort = '{{ current_sort }}';
+        const currentDir = '{{ current_dir }}';
+        let newDir = 'asc';
+        if (sortField === currentSort && currentDir === 'asc') {
+            newDir = 'desc';
+        }
+        filterForm.querySelector('[name=sort]').value = sortField;
+        filterForm.querySelector('[name=dir]').value = newDir;
+        filterForm.submit();
+    });
+});
+</script>
+{% endblock %}

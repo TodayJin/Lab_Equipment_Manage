@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}关于 - 电子技术创新实验室{% endblock %}
+{% block page_title %}关于{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width:700px">
+    <div class="text-center mb-4">
+        <i class="bi bi-cpu" style="font-size:48px;color:var(--primary)"></i>
+        <h3 class="fw-bold mt-3">电子技术创新实验室</h3>
+        <p class="text-muted">器材管理系统</p>
+        <hr>
+    </div>
+
+    <div class="mb-4">
+        <h5 class="fw-bold"><i class="bi bi-info-circle me-2"></i>版本信息</h5>
+        <table class="table table-sm">
+            <tr><td class="fw-medium" style="width:120px">版本号</td><td class="text-muted">v3.1</td></tr>
+            <tr><td class="fw-medium">发布日期</td><td class="text-muted">2026年6月</td></tr>
+            <tr><td class="fw-medium">技术栈</td><td class="text-muted">Python Flask + SQLite + Bootstrap 5</td></tr>
+            <tr><td class="fw-medium">运行环境</td><td class="text-muted">Windows / Linux / macOS</td></tr>
+        </table>
+    </div>
+
+    <div class="mb-4">
+        <h5 class="fw-bold"><i class="bi bi-people me-2"></i>开发团队</h5>
+        <table class="table table-sm">
+            <tr><td class="fw-medium" style="width:120px">开发</td><td class="text-muted">Today</td></tr>
+            <tr><td class="fw-medium">维护</td><td class="text-muted">Today</td></tr>
+        </table>
+    </div>
+
+    <div class="mb-4">
+        <h5 class="fw-bold"><i class="bi bi-shield-check me-2"></i>致谢</h5>
+        <p class="text-muted small">
+            感谢 Flask、SQLAlchemy、Bootstrap 等开源项目的支持。<br>
+            感谢实验室全体成员的使用与反馈。
+        </p>
+    </div>
+
+    <div>
+        <h5 class="fw-bold"><i class="bi bi-envelope me-2"></i>联系方式</h5>
+        <p class="text-muted small">
+            13837981942
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}共享文件 - 电子技术创新实验室{% endblock %}
+{% block page_title %}共享文件{% endblock %}
+
+{% block content %}
+<!-- 上传进度条（隐藏） -->
+<div class="upload-progress" id="uploadProgress" style="display:none">
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-cloud-arrow-up"></i><span>上传中</span></div>
+        <div class="p-3">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="small fw-medium" id="upFilename"></span>
+                <span class="small" id="upSpeed">—</span>
+            </div>
+            <div class="progress" style="height:8px">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="upBar" style="width:0%"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+                <span class="small text-muted" id="upSent">0 KB</span>
+                <span class="small text-muted" id="upTotal"></span>
+            </div>
+            <button class="btn btn-sm btn-outline-danger mt-2 w-100" id="upCancel" style="display:none" onclick="cancelUpload()"><i class="bi bi-x-circle"></i> 取消传输</button>
+        </div>
+    </div>
+</div>
+
+<div class="dash-grid">
+    <!-- 上传到服务器 -->
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-cloud-upload"></i><span>上传到服务器</span></div>
+        <form method="POST" action="{{ url_for('chat.files_upload') }}" enctype="multipart/form-data" class="p-3" onsubmit="return uploadWithProgress(this, event)">
+            <div class="mb-2"><input type="file" name="file" id="fixedFile" class="form-control form-control-sm" required></div>
+            <div class="mb-2"><input type="text" name="description" class="form-control form-control-sm" placeholder="描述（可选）"></div>
+            <button class="btn btn-primary btn-sm w-100" id="fixedSubmit"><i class="bi bi-upload"></i> 上传</button>
+        </form>
+    </div>
+
+    <!-- P2P 在线用户传输 -->
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-send"></i><span>点对点传输</span>
+            <span class="badge bg-success ms-2">{{ online|length }} 人在线</span>
+        </div>
+        <div class="p-3">
+            {% if online %}
+            <form method="POST" action="{{ url_for('chat.p2p_send') }}" enctype="multipart/form-data" onsubmit="return uploadWithProgress(this, event)">
+                <div class="mb-2">
+                    <label class="form-label small">发送给</label>
+                    <select name="receiver_id" class="form-select form-select-sm" required>
+                        <option value="">— 选择在线用户 —</option>
+                        {% for u in online %}
+                        {% if u.id != current_user.id %}
+                        <option value="{{ u.id }}">{{ u.username }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2"><input type="file" name="p2p_file" id="p2pFile" class="form-control form-control-sm" required></div>
+                <button class="btn btn-outline-primary btn-sm w-100" id="p2pSubmit"><i class="bi bi-send"></i> 发送</button>
+            </form>
+            {% else %}
+            <p class="text-muted small mb-0">暂无其他在线用户</p>
+            {% endif %}
+
+            {% if pending %}
+            <hr>
+            <p class="fw-medium small mb-2">P2P 传输记录：</p>
+            {% for p in pending %}
+            <div class="d-flex justify-content-between align-items-center mb-1" data-p2p-id="{{ p.id }}">
+                <span class="small">
+                    {{ p.sender.username }} → {{ p.original_name }}
+                    ({{ '%.0f'|format(p.size/1024) if p.size < 1048576 else '%.1f'|format(p.size/1048576) }}{{ 'KB' if p.size < 1048576 else 'MB' }})
+                    {% if p.status == 'downloaded' %}<span class="badge bg-secondary ms-1">已下载</span>{% else %}<span class="badge bg-warning ms-1">待接收</span>{% endif %}
+                </span>
+                <a href="{{ url_for('chat.p2p_download', id=p.id) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i></a>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="dash-panel">
+        <div class="panel-head"><i class="bi bi-folder2-open"></i><span>文件列表</span><span class="badge bg-secondary ms-2">{{ files|length }}</span></div>
+        {% if files %}
+        <div class="table-container">
+            <table class="table table-sm">
+                <thead><tr><th>文件名</th><th>大小</th><th>描述</th><th>上传者</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody>
+                {% for f in files %}
+                <tr>
+                    <td><span class="fw-medium">{{ f.original_name }}</span>{% if f.is_fixed %}<span class="badge bg-success ms-1">固定</span>{% endif %}</td>
+                    <td class="text-muted small">{{ '%.1f'|format(f.size/1024) if f.size < 1048576 else '%.1f'|format(f.size/1048576) }}{{ 'KB' if f.size < 1048576 else 'MB' }}</td>
+                    <td class="small">{{ f.description or '-' }}</td>
+                    <td class="text-muted small">{{ f.user.username }}</td>
+                    <td class="text-muted small">{{ f.created_at | localdate }}</td>
+                    <td>
+                        <a href="{{ url_for('chat.files_download', id=f.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                        {% if f.user_id == current_user.id or current_user.is_admin %}
+                        <form method="POST" action="{{ url_for('chat.files_delete', id=f.id) }}" class="d-inline" onsubmit="return confirm('确定删除？')">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-folder2-open text-muted"></i><p>暂无文件</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+
+let currentXhr = null;
+let currentUploadId = null;
+let cancelled = false;
+
+function cancelUpload() {
+    cancelled = true;
+    if (currentXhr) { currentXhr.abort(); currentXhr = null; }
+    if (currentUploadId) {
+        // Tell server to clean up temp chunks
+        fetch('/chat/cancel-upload?upload_id=' + currentUploadId, { method: 'POST' });
+        currentUploadId = null;
+    }
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('upCancel').style.display = 'none';
+}
+
+function uploadWithProgress(form, event) {
+    var fileInput = form.querySelector('input[type="file"]');
+    var file = fileInput.files[0];
+    if (!file) return true;
+    event.preventDefault();
+
+    cancelled = false;
+    currentXhr = null;
+    currentUploadId = null;
+
+    var progress = document.getElementById('uploadProgress');
+    var bar = document.getElementById('upBar');
+    var filename = document.getElementById('upFilename');
+    var speed = document.getElementById('upSpeed');
+    var sent = document.getElementById('upSent');
+    var total = document.getElementById('upTotal');
+    var cancelBtn = document.getElementById('upCancel');
+
+    progress.style.display = 'block';
+    cancelBtn.style.display = '';
+    filename.textContent = file.name;
+    total.textContent = formatSize(file.size);
+    bar.style.width = '0%';
+    bar.classList.remove('bg-success', 'bg-danger');
+    speed.textContent = '0%';
+    sent.textContent = '0 KB';
+
+    var targetType = form.querySelector('[name="p2p_file"]') ? 'p2p' : 'shared';
+    var receiverId = form.querySelector('[name="receiver_id"]')?.value || 0;
+    var description = form.querySelector('[name="description"]')?.value || '';
+
+    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    var uploadId = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+    currentUploadId = uploadId;
+    var startTime = Date.now();
+    var uploaded = 0;
+
+    function uploadChunk(index) {
+        if (cancelled) return;
+        if (index >= totalChunks) return;
+
+        var start = index * CHUNK_SIZE;
+        var end = Math.min(start + CHUNK_SIZE, file.size);
+        var blob = file.slice(start, end);
+
+        var fd = new FormData();
+        fd.append('upload_id', uploadId);
+        fd.append('chunk_index', index);
+        fd.append('total_chunks', totalChunks);
+        fd.append('original_name', file.name);
+        fd.append('target_type', targetType);
+        if (targetType === 'p2p') fd.append('receiver_id', receiverId);
+        if (targetType === 'shared') fd.append('description', description);
+        fd.append('file', blob, 'chunk_' + index);
+
+        currentXhr = new XMLHttpRequest();
+        currentXhr.open('POST', '/chat/chunk-upload');
+
+        currentXhr.addEventListener('load', function() {
+            if (cancelled) return;
+            currentXhr = null;
+            if (this.status >= 200 && this.status < 400) {
+                var resp = JSON.parse(this.responseText);
+                if (resp.ok) {
+                    uploaded += (end - start);
+                    var pct = Math.round(uploaded / file.size * 100);
+                    bar.style.width = pct + '%';
+                    sent.textContent = formatSize(uploaded);
+
+                    var elapsed = (Date.now() - startTime) / 1000;
+                    if (elapsed > 0) {
+                        speed.textContent = formatSpeed(uploaded / elapsed) + ' · ' + pct + '%';
+                    }
+
+                    if (resp.status === 'complete') {
+                        bar.classList.add('bg-success');
+                        bar.style.width = '100%';
+                        speed.textContent = formatSize(file.size) + ' 上传完成';
+                        cancelBtn.style.display = 'none';
+                        currentUploadId = null;
+                        setTimeout(function() { progress.style.display = 'none'; }, 2000);
+                        setTimeout(function() { window.location.reload(); }, 800);
+                        return;
+                    }
+                    uploadChunk(index + 1);
+                } else {
+                    speed.textContent = resp.error || '上传失败';
+                    bar.classList.add('bg-danger');
+                    cancelBtn.style.display = 'none';
+                }
+            } else {
+                speed.textContent = '错误（片' + (index + 1) + '/' + totalChunks + '）';
+                bar.classList.add('bg-danger');
+                cancelBtn.style.display = 'none';
+            }
+        });
+
+        currentXhr.addEventListener('error', function() {
+            if (cancelled) return;
+            currentXhr = null;
+            speed.textContent = '网络错误（片' + (index + 1) + '/' + totalChunks + '）';
+            bar.classList.add('bg-danger');
+            cancelBtn.style.display = 'none';
+        });
+
+        currentXhr.send(fd);
+    }
+
+    uploadChunk(0);
+    return false;
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1048576 * 1024) return (bytes / 1048576).toFixed(2) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+
+function formatSpeed(bytesPerSec) {
+    if (bytesPerSec < 1048576) return (bytesPerSec / 1024).toFixed(1) + ' KB/s';
+    return (bytesPerSec / 1048576).toFixed(1) + ' MB/s';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+venv/
+instance/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+dist/
+build/
+*.spec
+settings.json
+.secret_key
+static/uploads/
+.codegraph/
+*.exe

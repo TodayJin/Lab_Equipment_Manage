@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}公告 - 电子技术创新实验室{% endblock %}
+{% block page_title %}公告 & 工具{% endblock %}
+
+{% block content %}
+<div class="dash-grid">
+    <!-- 公告 -->
+    <div class="dash-panel">
+        <div class="panel-head">
+            <i class="bi bi-megaphone"></i><span>公告栏</span>
+        </div>
+        {% if notices %}
+        <div class="p-3">
+            {% for n in notices %}
+            <div class="mb-3 pb-3 border-bottom">
+                <div class="d-flex justify-content-between">
+                    <h6 class="fw-bold mb-1">
+                        {% if n.is_pinned %}<span class="badge bg-danger me-1">置顶</span>{% endif %}
+                        {{ n.title }}
+                    </h6>
+                    <small class="text-muted">{{ n.created_at | localdate }}</small>
+                </div>
+                <p class="mb-1">{{ n.content }}</p>
+                <small class="text-muted">发布者：{{ n.user.username }}</small>
+                {% if current_user.is_admin %}
+                <form method="POST" action="{{ url_for('lab.delete_notice', id=n.id) }}" class="d-inline float-end"
+                      onsubmit="return confirm('确定删除此公告？')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-megaphone text-muted"></i><p>暂无公告</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 快捷入口 -->
+    <div>
+        <div class="dash-panel mb-3">
+            <div class="panel-head"><i class="bi bi-person-check"></i><span>每日签到</span></div>
+            <div class="p-3">
+                <p class="text-muted small mb-2">实验室成员签到签退</p>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('lab.checkin') }}" class="btn btn-outline-primary btn-sm flex-fill">签到</a>
+                    <a href="{{ url_for('lab.checkin_stats') }}" class="btn btn-outline-secondary btn-sm flex-fill">统计</a>
+                </div>
+            </div>
+        </div>
+        <div class="dash-panel mb-3">
+            <div class="panel-head"><i class="bi bi-calendar-check"></i><span>值日排班</span></div>
+            <div class="p-3">
+                <p class="text-muted small mb-2">{% if current_user.is_admin %}设置每周值日人员{% else %}查看本周值日安排{% endif %}</p>
+                <a href="{{ url_for('lab.duty') }}" class="btn btn-outline-primary btn-sm w-100">{% if current_user.is_admin %}管理排班{% else %}查看排班{% endif %}</a>
+            </div>
+        </div>
+        {% if current_user.is_admin %}
+        <!-- 发布公告 -->
+        <div class="dash-panel mb-3">
+            <div class="panel-head"><i class="bi bi-pencil-square"></i><span>发布公告</span></div>
+            <div class="p-3">
+                <form method="POST" action="{{ url_for('lab.new_notice') }}">
+                    <div class="mb-2">
+                        <input type="text" name="title" class="form-control form-control-sm" placeholder="公告标题" required>
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="content" class="form-control form-control-sm" rows="2" placeholder="公告内容" required></textarea>
+                    </div>
+                    <div class="form-check form-check-inline mb-2">
+                        <input class="form-check-input" type="checkbox" name="is_pinned"><label class="form-check-label small">置顶</label>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100">发布</button>
+                </form>
+            </div>
+        </div>
+        <div class="dash-panel">
+            <div class="panel-head"><i class="bi bi-archive"></i><span>数据备份</span></div>
+            <div class="p-3">
+                <p class="text-muted small mb-2">导出/恢复全部系统数据</p>
+                <a href="{{ url_for('lab.backup_page') }}" class="btn btn-outline-secondary btn-sm w-100">进入备份管理</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

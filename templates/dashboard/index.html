@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - 电子技术创新实验室{% endblock %}
+{% block page_title %}仪表盘{% endblock %}
+
+{% block content %}
+
+<!-- 公告栏 -->
+{% if notices %}
+<div class="notice-bar">
+    <div class="notice-scroll">
+        <i class="bi bi-megaphone notice-icon"></i>
+        <span class="notice-separator">|</span>
+        {% for n in notices %}
+        <span class="notice-item">
+            {% if n.is_pinned %}<span class="badge bg-danger me-1">置顶</span>{% endif %}
+            <strong>{{ n.title }}</strong> — {{ n.content[:60] }}{% if n.content|length > 60 %}...{% endif %}
+        </span>
+        <span class="notice-separator">|</span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- 今日值日 -->
+{% if today_duty and today_duty.users_list %}
+<div class="duty-today">
+    <i class="bi bi-person-check"></i>
+    <span>今日值日：<strong>{{ today_duty.users_list | map(attribute='username') | join('、') }}</strong></span>
+    {% if today_duty.remark %}<span class="text-muted ms-2">（{{ today_duty.remark }}）</span>{% endif %}
+</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
+            <i class="bi bi-box-seam"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-value">{{ total_equipment }}</div>
+            <div class="stat-label">器材种类</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #d1fae5; color: #059669;">
+            <i class="bi bi-layers"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-value">{{ total_stock }}</div>
+            <div class="stat-label">库存总量</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
+            <i class="bi bi-box-arrow-in-down"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-value">{{ this_month_in }}</div>
+            <div class="stat-label">本月入库</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #fee2e2; color: #dc2626;">
+            <i class="bi bi-box-arrow-up"></i>
+        </div>
+        <div class="stat-body">
+            <div class="stat-value">{{ this_month_out }}</div>
+            <div class="stat-label">本月出库</div>
+        </div>
+    </div>
+</div>
+
+<div class="dash-grid">
+    <div class="dash-panel">
+        <div class="panel-head">
+            <i class="bi bi-exclamation-triangle text-warning"></i>
+            <span>库存预警</span>
+            {% if low_stock_items %}
+                <span class="badge bg-danger ms-2">{{ low_stock_items|length }}</span>
+            {% endif %}
+        </div>
+        {% if low_stock_items %}
+        <div class="table-container">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>器材</th>
+                        <th>当前库存</th>
+                        <th>预警阈值</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in low_stock_items %}
+                    <tr class="row-warning">
+                        <td>
+                            <a href="{{ url_for('equipment.edit', id=item.id) }}" class="text-dark fw-medium">
+                                {{ item.name }}
+                            </a>
+                            <div class="text-muted small">{{ item.model or '' }}</div>
+                        </td>
+                        <td><span class="fw-bold text-danger">{{ item.stock_quantity }}</span> {{ item.unit }}</td>
+                        <td>{{ item.alert_threshold }} {{ item.unit }}</td>
+                        <td><span class="badge bg-danger">库存不足</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-check-circle text-success"></i>
+            <p>所有器材库存充足，无预警项</p>
+        </div>
+        {% endif %}
+    </div>
+    <div class="dash-panel">
+        <div class="panel-head">
+            <i class="bi bi-clock-history"></i>
+            <span>最近操作</span>
+        </div>
+        {% if recent_records %}
+        <div class="table-container">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>器材</th>
+                        <th>类型</th>
+                        <th>数量</th>
+                        <th>操作人</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recent_records %}
+                    <tr>
+                        <td class="text-muted small">{{ r.created_at | localdate }}</td>
+                        <td>{{ r.equipment.name }}</td>
+                        <td>
+                            <span class="badge {% if r.type == 'in' %}badge-in{% else %}badge-out{% endif %}">
+                                {{ r.type_display }}
+                            </span>
+                        </td>
+                        <td>{{ r.quantity }}</td>
+                        <td class="text-muted">{{ r.user.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox text-muted"></i>
+            <p>暂无操作记录</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

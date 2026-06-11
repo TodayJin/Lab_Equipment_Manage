@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_title %}日志详情{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width:700px">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0"><i class="bi bi-journal-code me-2 text-primary"></i>操作记录 #{{ log.id }}</h5>
+        <a href="{{ url_for('admin_web.logs') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>返回列表</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-sm-6">
+            <div class="border rounded-3 p-3">
+                <small class="text-muted d-block mb-1">操作时间</small>
+                <span class="fw-semibold">{{ log.created_at | localdate if log.created_at else '-' }}</span>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="border rounded-3 p-3">
+                <small class="text-muted d-block mb-1">操作人</small>
+                <span class="fw-semibold">{{ log.user.username if log.user else '-' }}</span>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="border rounded-3 p-3">
+                <small class="text-muted d-block mb-1">操作类型</small>
+                {% set action_map = {
+                  'create_equipment': '创建器材', 'edit_equipment': '编辑器材', 'delete_equipment': '删除器材',
+                  'create_category': '创建分类', 'edit_category': '编辑分类', 'delete_category': '删除分类',
+                  'stock_in': '入库', 'stock_out': '出库', 'undo_stock': '撤销操作',
+                  'change_role': '修改权限', 'change_password': '修改密码', 'delete_user': '删除用户',
+                } %}
+                <span class="badge bg-primary">{{ action_map.get(log.action, log.action) }}</span>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="border rounded-3 p-3">
+                <small class="text-muted d-block mb-1">操作目标</small>
+                <span class="fw-semibold">{{ log.target_name or '-' }}</span>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="border rounded-3 p-3">
+                <small class="text-muted d-block mb-1">详细信息</small>
+                <span>{{ log.detail or '-' }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

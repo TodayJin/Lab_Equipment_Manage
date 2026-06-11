@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}值日排班 - 电子技术创新实验室{% endblock %}
+{% block page_title %}值日排班{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('lab.save_duty') }}">
+    {% endif %}
+        <div class="table-container">
+            <table class="table table-sm">
+                <thead><tr><th style="width:70px">星期</th><th>值日人员</th>{% if current_user.is_admin %}<th>备注</th>{% endif %}</tr></thead>
+                <tbody>
+                {% for i in range(7) %}
+                {% set day_data = existing.get(i) %}
+                {% set selected_ids = day_data.user_ids.split(',') if day_data and day_data.user_ids else [] %}
+                <tr>
+                    <td class="fw-bold align-middle">{{ weekdays[i] }}</td>
+                    <td>
+                        {% if current_user.is_admin %}
+                        <div class="d-flex flex-wrap gap-1">
+                        {% for u in users %}
+                        <label class="form-check form-check-inline small">
+                            <input class="form-check-input" type="checkbox" name="users_{{ i }}" value="{{ u.id }}"
+                                   {% if u.id|string in selected_ids %}checked{% endif %}>
+                            {{ u.username }}
+                        </label>
+                        {% endfor %}
+                        </div>
+                        {% else %}
+                        {% set duty_users = day_data.users_list if day_data else [] %}
+                        {% if duty_users %}
+                            {% for u in duty_users %}
+                            <span class="badge bg-primary me-1">{{ u.username }}</span>
+                            {% endfor %}
+                            {% if day_data.remark %}<small class="text-muted ms-2">{{ day_data.remark }}</small>{% endif %}
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    {% if current_user.is_admin %}
+                    <td>
+                        <input type="text" name="remark_{{ i }}" class="form-control form-control-sm"
+                               value="{{ day_data.remark if day_data else '' }}">
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if current_user.is_admin %}
+        <button type="submit" class="btn btn-primary mt-3">保存排班</button>
+        <a href="{{ url_for('lab.notices') }}" class="btn btn-outline-secondary mt-3 ms-2">返回</a>
+        {% else %}
+        <a href="{{ url_for('lab.notices') }}" class="btn btn-outline-secondary mt-3">返回公告</a>
+        {% endif %}
+    {% if current_user.is_admin %}
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

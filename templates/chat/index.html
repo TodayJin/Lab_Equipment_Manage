@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}群聊 - 电子技术创新实验室{% endblock %}
+{% block page_title %}群聊{% endblock %}
+
+{% block content %}
+<div class="dash-grid">
+    <!-- 消息区 -->
+    <div class="dash-panel" style="grid-column:1/-1">
+        <div class="panel-head"><i class="bi bi-chat-dots"></i><span>实验室群聊</span></div>
+        <div id="chatMessages" class="chat-messages">
+            {% for m in messages %}
+            <div class="chat-msg {% if m.user_id == current_user.id %}chat-own{% endif %}">
+                <div class="chat-avatar">
+                    {% if m.user.avatar %}
+                    <img src="/account/avatar-img/{{ m.user.avatar }}" alt="">
+                    {% else %}
+                    <i class="bi bi-person-circle"></i>
+                    {% endif %}
+                </div>
+                <div class="chat-body">
+                    <div class="chat-meta">
+                        <strong>{{ m.user.username }}</strong>
+                        <small class="text-muted ms-2">{{ m.created_at | localtime }}</small>
+                    </div>
+                    {% if m.msg_type == 'text' %}
+                    <div class="chat-text">{{ m.content }}</div>
+                    {% elif m.msg_type == 'image' %}
+                    <div class="chat-text"><a href="/chat/media/{{ m.file_path }}" target="_blank"><img src="/chat/media/{{ m.file_path }}" class="chat-image" alt=""></a></div>
+                    {% elif m.msg_type == 'file' %}
+                    <div class="chat-text"><a href="/chat/media/{{ m.file_path }}" class="btn btn-sm btn-outline-primary" download="{{ m.file_name }}"><i class="bi bi-download"></i> {{ m.file_name }}</a></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="chatEnd"></div>
+    </div>
+</div>
+
+<!-- 输入区 -->
+<div class="chat-input-bar">
+    <form method="POST" action="{{ url_for('chat.send') }}" enctype="multipart/form-data" id="chatForm">
+        <div class="input-group">
+            <textarea name="content" class="form-control" rows="1" placeholder="输入消息..." id="chatInput"></textarea>
+            <label class="btn btn-outline-secondary mb-0" style="border-radius:var(--radius-sm) 0 0 var(--radius-sm)"><i class="bi bi-paperclip"></i><input type="file" name="file" style="display:none" onchange="this.closest('form').submit()"></label>
+            <button class="btn btn-primary"><i class="bi bi-send"></i></button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Chat input: Enter to submit, but not during IME composition
+let chatComposing = false;
+const chatInput = document.getElementById('chatInput');
+const chatForm = document.getElementById('chatForm');
+const fileInput = chatForm.querySelector('input[type=file]');
+
+async function sendMessage() {
+    const text = chatInput.value.trim();
+    const file = fileInput.files[0];
+    if (!text && !file) return;
+
+    if (text && !file) {
+        // Text-only: AJAX send, no page reload
+        chatInput.value = '';
+        try {
+            const resp = await fetch('{{ url_for("chat.send") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: 'content=' + encodeURIComponent(text)
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                lastId = Math.max(lastId, data.id);  // Prevent poll from re-fetching
+                appendMessage(data, true);
+            }
+        } catch(e) {
+            chatForm.submit(); // fallback
+        }
+    } else {
+        // Has file: regular form submit (multipart)
+        chatForm.submit();
+    }
+}
+
+function appendMessage(m, isOwn) {
+    const senderName = isOwn ? '{{ current_user.username }}' : (m.user || '?');
+    let avatarHtml;
+    if (isOwn) {
+        {% if current_user.avatar %}
+        avatarHtml = '<img src="/account/avatar-img/{{ current_user.avatar }}" alt="">';
+        {% else %}
+        avatarHtml = '<i class="bi bi-person-circle"></i>';
+        {% endif %}
+    } else {
+        avatarHtml = m.avatar
+            ? `<img src="/account/avatar-img/${m.avatar}" alt="">`
+            : '<i class="bi bi-person-circle"></i>';
+    }
+    let bodyHtml = '';
+    if (m.msg_type === 'image') {
+        bodyHtml = `<div class="chat-text"><a href="/chat/media/${m.file_path}" target="_blank"><img src="/chat/media/${m.file_path}" class="chat-image"></a></div>`;
+    } else if (m.msg_type === 'file') {
+        bodyHtml = `<div class="chat-text"><a href="/chat/media/${m.file_path}" class="btn btn-sm btn-outline-primary" download="${m.file_name}"><i class="bi bi-download"></i> ${m.file_name}</a></div>`;
+    } else {
+        bodyHtml = `<div class="chat-text">${(m.content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    }
+    const html = `<div class="chat-msg ${isOwn ? 'chat-own' : ''}"><div class="chat-avatar">${avatarHtml}</div><div class="chat-body"><div class="chat-meta"><strong>${senderName}</strong><small class="text-muted ms-2">${m.time_str}</small></div>${bodyHtml}</div></div>`;
+    const msgContainer = document.getElementById('chatMessages');
+    msgContainer.insertAdjacentHTML('beforeend', html);
+    // Scroll to bottom after DOM renders
+    setTimeout(() => {
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+    }, 50);
+}
+
+chatInput.addEventListener('compositionstart', function() { chatComposing = true; });
+chatInput.addEventListener('compositionend', function() { chatComposing = false; });
+chatInput.addEventListener('keydown', function(e) {
+    if (chatComposing) return;
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Send button click
+chatForm.querySelector('button[type=submit], .bi-send')?.closest('button')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    sendMessage();
+});
+
+// File input change: send immediately
+fileInput.addEventListener('change', function() {
+    if (this.files[0]) chatForm.submit();
+});
+
+// Poll for new messages every 2s
+let lastId = {{ messages|length > 0 and messages[-1].id or 0 }};
+setInterval(() => {
+    fetch('/chat/messages?since=' + lastId).then(r => r.json()).then(data => {
+        if (data.length === 0) return;
+        data.forEach(m => {
+            const isOwn = m.user_id === {{ current_user.id }};
+            appendMessage(m, isOwn);
+            lastId = m.id;
+        });
+    });
+}, 2000);
+
+// Scroll to bottom on load
+setTimeout(() => {
+    const mc = document.getElementById('chatMessages');
+    if (mc) mc.scrollTop = mc.scrollHeight;
+}, 100);
+</script>
+{% endblock %}

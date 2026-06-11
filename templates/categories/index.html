@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 - 电子技术创新实验室{% endblock %}
+{% block page_title %}分类管理{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-card">
+            <h6 class="fw-bold mb-3">新增分类</h6>
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label class="form-label">{{ form.name.label.text }}</label>
+                    {{ form.name(class="form-control", placeholder="例如：玻璃器皿") }}
+                    {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors[0] }}</div>{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ form.description.label.text }}</label>
+                    {{ form.description(class="form-control", rows=2, placeholder="可选描述") }}
+                </div>
+                {{ form.submit(class="btn btn-primary w-100") }}
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>分类名称</th>
+                        <th>描述</th>
+                        <th>器材数量</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td class="fw-medium">{{ cat.name }}</td>
+                        <td class="text-muted">{{ cat.description or '-' }}</td>
+                        <td>{{ cat.equipments.count() }}</td>
+                        <td>
+                            <a href="{{ url_for('categories.edit', id=cat.id) }}" class="btn btn-sm btn-outline-secondary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if current_user.is_admin %}
+                            <form method="POST" action="{{ url_for('categories.delete', id=cat.id) }}" class="d-inline"
+                                  onsubmit="return confirm('确定删除分类「{{ cat.name }}」吗？')">
+                                <button class="btn btn-sm btn-outline-danger" title="删除"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state"><i class="bi bi-inbox text-muted"></i><p>暂无分类</p></div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

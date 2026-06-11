@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="{% if current_user.is_authenticated and current_user.dark_mode_enabled %}dark{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}电子技术创新实验室 - 器材管理系统{% endblock %}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}" id="dark-css"
+          {% if not (current_user.is_authenticated and current_user.dark_mode_enabled) %}disabled{% endif %}>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="bi bi-cpu"></i>
+                <span>电子技术创新实验室</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.index') }}" class="nav-item {{ 'active' if request.endpoint == 'dashboard.index' }}">
+                    <i class="bi bi-speedometer2"></i><span>仪表盘</span>
+                </a>
+                <a href="{{ url_for('equipment.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('equipment') }}">
+                    <i class="bi bi-box-seam"></i><span>器材管理</span>
+                </a>
+                <a href="{{ url_for('categories.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('categories') }}">
+                    <i class="bi bi-tags"></i><span>分类管理</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('stock.stock_in') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_in' }}">
+                    <i class="bi bi-box-arrow-in-down"></i><span>入库</span>
+                </a>
+                <a href="{{ url_for('stock.stock_out') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_out' }}">
+                    <i class="bi bi-box-arrow-up"></i><span>出库</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('records.index') }}" class="nav-item {{ 'active' if request.endpoint == 'records.index' }}">
+                    <i class="bi bi-journal-text"></i><span>记录查询</span>
+                </a>
+                <a href="{{ url_for('analytics.index') }}" class="nav-item {{ 'active' if request.endpoint == 'analytics.index' }}">
+                    <i class="bi bi-graph-up"></i><span>数据分析</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('lab.notices') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('lab') }}">
+                    <i class="bi bi-megaphone"></i><span>公告 & 工具</span>
+                </a>
+                <a href="{{ url_for('chat.index') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.index' }}">
+                    <i class="bi bi-chat-dots"></i><span>群聊</span>
+                </a>
+                <a href="{{ url_for('chat.files_list') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.files_list' }}">
+                    <i class="bi bi-folder2-open"></i><span>共享文件</span>
+                </a>
+                {% if current_user.is_admin %}
+                <div class="nav-divider"></div>
+                <a href="{{ url_for('admin_web.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin_web') }}">
+                    <i class="bi bi-shield-lock"></i><span>管理后台</span>
+                </a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <a href="{{ url_for('account.index') }}" class="avatar-link">
+                        {% if avatar_url %}
+                        <img src="{{ avatar_url }}" class="avatar-img" alt="">
+                        {% else %}
+                        <i class="bi bi-person-circle avatar-placeholder"></i>
+                        {% endif %}
+                    </a>
+                    <div>
+                        <span>{{ current_user.username }}</span>
+                        <span class="badge bg-{{ 'warning' if current_user.is_admin else 'secondary' }} ms-1" style="font-size:10px">{{ '管理员' if current_user.is_admin else '用户' }}</span>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <a href="{{ url_for('account.index') }}" title="账户管理"><i class="bi bi-person-gear"></i></a>
+                    <a href="{{ url_for('about.index') }}" title="关于"><i class="bi bi-info-circle"></i></a>
+                    <a href="{{ url_for('settings_routes.index') }}" title="个人设置"><i class="bi bi-gear"></i></a>
+                    <a href="{{ url_for('auth.logout') }}" title="退出登录"><i class="bi bi-box-arrow-right"></i></a>
+                </div>
+            </div>
+        </aside>
+        <main class="main-content">
+            <header class="topbar">
+                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+                <div class="topbar-right">
+                    {% block breadcrumb %}{% endblock %}
+                    {% if request.endpoint != 'lab.checkin' %}
+                    <div class="quick-checkin">
+                        {% if checkin_status %}
+                        <span class="checkin-badge online"><i class="bi bi-circle-fill"></i> 在线</span>
+                        {% if checkin_status.last_signin %}
+                        <span class="checkin-time">{{ checkin_status.last_signin | localtime }}</span>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('lab.do_signout', id=checkin_status.id) }}" class="d-inline">
+                            <button class="btn btn-sm btn-outline-warning">签退</button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('lab.do_signin') }}" class="d-inline">
+                            <button class="btn btn-sm btn-success"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+            <div class="content-area">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show flash-msg" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% else %}
+    <div class="auth-wrapper">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show auth-flash" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block auth_content %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+    // 心跳：每45秒告诉服务器我在线
+    {% if current_user.is_authenticated %}
+    setInterval(function() {
+        fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
+    }, 45000);
+    fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
+    {% endif %}
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

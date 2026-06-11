@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}入库 - 电子技术创新实验室{% endblock %}
+{% block page_title %}器材入库{% endblock %}
+
+{% block extra_head %}
+<script src="{{ url_for('static', filename='js/searchable-select.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="form-card">
+            <div class="stock-direction">
+                <i class="bi bi-box-arrow-in-down stock-dir-icon stock-dir-in"></i>
+                <span>入库操作 — 库存增加</span>
+            </div>
+            <form method="POST" id="stockForm">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label class="form-label">选择器材 <span class="text-danger">*</span></label>
+                    <div data-searchable-select
+                         data-api-url="{{ url_for('stock.api_equipment_list') }}"
+                         data-name="equipment_id"
+                         data-placeholder="搜索器材名称、型号…"></div>
+                    {% if form.equipment_id.errors %}<div class="invalid-feedback d-block">{{ form.equipment_id.errors[0] }}</div>{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ form.quantity.label.text }} <span class="text-danger">*</span></label>
+                    {{ form.quantity(class="form-control", placeholder="请输入入库数量") }}
+                    {% if form.quantity.errors %}<div class="invalid-feedback d-block">{{ form.quantity.errors[0] }}</div>{% endif %}
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">{{ form.remark.label.text }}</label>
+                    {{ form.remark(class="form-control", rows=2, placeholder="备注信息（如采购批次、供应商等）") }}
+                </div>
+                {{ form.submit(class="btn btn-success btn-lg w-100") }}
+            </form>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-card">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history"></i> 最近操作</h6>
+            {% if recent_records %}
+            <div class="undo-list">
+                {% for r in recent_records %}
+                <div class="undo-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="badge {% if r.type == 'in' %}badge-in{% else %}badge-out{% endif %} me-1">{{ r.type_display }}</span>
+                            <strong>{{ r.equipment.name }}</strong>
+                        </div>
+                        <span class="text-muted small">{{ r.created_at | localtime }}</span>
+                    </div>
+                    <div class="mt-1">
+                        <span>数量: {{ r.quantity }}{{ r.equipment.unit }}</span>
+                        <span class="text-muted small ms-2">{{ r.before_stock }} → {{ r.after_stock }}</span>
+                    </div>
+                    <form method="POST" action="{{ url_for('stock.undo', record_id=r.id) }}" class="mt-1">
+                        <button class="btn btn-sm btn-outline-warning" onclick="return confirm('确定撤销此操作吗？')">
+                            <i class="bi bi-arrow-counterclockwise"></i> 撤销
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state py-3">
+                <i class="bi bi-inbox text-muted"></i>
+                <p class="small">暂无操作记录</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

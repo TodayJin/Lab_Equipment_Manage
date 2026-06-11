@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block page_title %}操作日志{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>操作日志</h2>
+    <a href="{{ url_for('admin_web.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>返回用户管理</a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-bottom-0 pt-3 pb-2">
+      <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-2"></i>日志列表</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th class="ps-4" style="min-width:160px">时间</th><th style="min-width:100px">操作人</th><th style="min-width:120px">操作</th><th>目标</th><th>详情</th></tr>
+          </thead>
+          <tbody>
+            {% for log in logs.items %}
+            <tr>
+              <td class="ps-4 text-muted small">{{ log.created_at | localdate if log.created_at else '-' }}</td>
+              <td class="fw-semibold">{{ log.user.username if log.user else '-' }}</td>
+              <td>
+                {% set action_map = {
+                  'create_equipment': '创建器材', 'edit_equipment': '编辑器材', 'delete_equipment': '删除器材',
+                  'create_category': '创建分类', 'edit_category': '编辑分类', 'delete_category': '删除分类',
+                  'stock_in': '入库', 'stock_out': '出库', 'undo_stock': '撤销操作',
+                  'change_role': '修改权限', 'change_password': '修改密码', 'delete_user': '删除用户',
+                } %}
+                <span class="badge bg-secondary">{{ action_map.get(log.action, log.action) }}</span>
+              </td>
+              <td>{{ log.target_name or '-' }}</td>
+              <td class="text-truncate" style="max-width:200px">{{ log.detail or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2"></i>暂无操作日志</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% if logs.pages > 1 %}
+    <div class="card-footer bg-transparent border-top-0 pt-2 pb-3">
+      <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+        <li class="page-item {{ 'disabled' if not logs.has_prev }}"><a class="page-link" href="{{ url_for('admin_web.logs', page=logs.prev_num) if logs.has_prev else '#' }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}<li class="page-item {{ 'active' if page_num == logs.page }}"><a class="page-link" href="{{ url_for('admin_web.logs', page=page_num) }}">{{ page_num }}</a></li>
+          {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not logs.has_next }}"><a class="page-link" href="{{ url_for('admin_web.logs', page=logs.next_num) if logs.has_next else '#' }}"><i class="bi bi-chevron-right"></i></a></li>
+      </ul></nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

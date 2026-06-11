@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 电子技术创新实验室{% endblock %}
+
+{% block auth_content %}
+<div class="auth-card">
+    <div class="auth-header">
+        <i class="bi bi-cpu auth-logo"></i>
+        <h2>电子技术创新实验室</h2>
+        <p class="auth-subtitle">创建新账号</p>
+    </div>
+    <form method="POST" class="auth-form">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label class="form-label">{{ form.username.label.text }}</label>
+            {{ form.username(class="form-control", placeholder="请输入用户名") }}
+            {% if form.username.errors %}
+                <div class="invalid-feedback d-block">{{ form.username.errors[0] }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">{{ form.password.label.text }}</label>
+            <div class="input-group">
+                {{ form.password(class="form-control", placeholder="请输入密码（至少4位）", id="regPassword") }}
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('regPassword', this)" title="显示密码">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </div>
+            {% if form.password.errors %}
+                <div class="invalid-feedback d-block">{{ form.password.errors[0] }}</div>
+            {% endif %}
+        </div>
+        {{ form.submit(class="btn btn-primary w-100") }}
+    </form>
+    <div class="auth-footer">
+        已有账号？<a href="{{ url_for('auth.login') }}">立即登录</a>
+        <br><small class="text-muted">提示：第一个注册的账号将自动成为管理员</small>
+    </div>
+</div>
+{% endblock %}

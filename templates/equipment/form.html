@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - 电子技术创新实验室{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ form.name.label.text }} <span class="text-danger">*</span></label>
+                {{ form.name(class="form-control", placeholder="例如：烧杯") }}
+                {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors[0] }}</div>{% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ form.model.label.text }}</label>
+                {{ form.model(class="form-control", placeholder="例如：B-500") }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">{{ form.packaging.label.text }}</label>
+                {{ form.packaging(class="form-control", placeholder="例如：纸箱/袋装") }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">{{ form.category_id.label.text }} <span class="text-danger">*</span></label>
+                {{ form.category_id(class="form-select") }}
+                {% if form.category_id.errors %}<div class="invalid-feedback d-block">{{ form.category_id.errors[0] }}</div>{% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">{{ form.unit.label.text }}</label>
+                {{ form.unit(class="form-control") }}
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">{{ form.alert_threshold.label.text }}</label>
+                {{ form.alert_threshold(class="form-control", placeholder="低于此数量时告警") }}
+                <div class="form-text">设0不启用预警</div>
+            </div>
+        </div>
+        {% if equipment %}
+        <div class="alert alert-info small mb-3">
+            <i class="bi bi-info-circle"></i> 当前库存：<strong>{{ equipment.stock_quantity }}{{ equipment.unit }}</strong>（库存只能通过入库/出库操作修改）
+        </div>
+        {% endif %}
+        <div class="mb-3">
+            <label class="form-label">{{ form.remark.label.text }}</label>
+            {{ form.remark(class="form-control", rows=3, placeholder="附加备注信息") }}
+        </div>
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('equipment.index') }}" class="btn btn-outline-secondary ms-2">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

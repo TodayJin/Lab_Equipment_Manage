@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block page_title %}用户管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 fw-bold">
+      <i class="bi bi-people-fill me-2 text-primary"></i>用户管理
+    </h2>
+    <a href="{{ url_for('admin_web.logs') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-journal-text me-1"></i>操作日志
+    </a>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center">
+          <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+            <i class="bi bi-people fs-4 text-primary"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">{{ total_users }}</h5>
+            <small class="text-muted">总用户数</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body d-flex align-items-center">
+          <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+            <i class="bi bi-shield-lock fs-4 text-danger"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">{{ admin_count }}</h5>
+            <small class="text-muted">管理员</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-bottom-0 pt-3 pb-2">
+      <h5 class="fw-bold mb-0"><i class="bi bi-person-lines-fill me-2"></i>用户列表</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">用户名</th>
+              <th>角色</th>
+              <th>注册日期</th>
+              <th class="text-end pe-4">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td class="ps-4 fw-semibold">
+                {{ user.username }}
+                {% if user.id == current_user.id %}
+                  <span class="badge bg-secondary ms-1">当前用户</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.role == 'admin' %}
+                  <span class="badge bg-danger">管理员</span>
+                {% else %}
+                  <span class="badge bg-primary">普通成员</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">{{ user.created_at | localdate if user.created_at else '-' }}</td>
+              <td class="text-end pe-4">
+                <div class="d-flex justify-content-end align-items-center gap-2 flex-wrap">
+
+                  {% if user.id != current_user.id %}
+                  <!-- Change Role -->
+                  <form method="POST" action="{{ url_for('admin_web.change_role', user_id=user.id) }}" class="d-flex align-items-center gap-1">
+                    {{ form.hidden_tag() if form else '' }}
+                    <select name="role" class="form-select form-select-sm" style="width:auto;">
+                      <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
+                      <option value="member" {% if user.role == 'member' %}selected{% endif %}>普通成员</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-primary btn-sm" title="修改角色">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+
+                  <!-- Change Password -->
+                  <form method="POST" action="{{ url_for('admin_web.change_user_password', user_id=user.id) }}" class="d-flex align-items-center gap-1">
+                    <input type="password" name="new_password" class="form-control form-control-sm" placeholder="新密码" style="width:110px;" required minlength="6">
+                    <button type="submit" class="btn btn-outline-warning btn-sm" title="修改密码">
+                      <i class="bi bi-key"></i>
+                    </button>
+                  </form>
+
+                  <!-- Delete User -->
+                  <form method="POST" action="{{ url_for('admin_web.delete_user', user_id=user.id) }}"
+                        onsubmit="return confirm('确定要删除用户 {{ user.username }} 吗？此操作不可撤销。');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" title="删除用户">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                  {% else %}
+                    <span class="text-muted small">—</span>
+                  {% endif %}
+
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>暂无用户数据
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}编辑分类 - 电子技术创新实验室{% endblock %}
+{% block page_title %}编辑分类：{{ category.name }}{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width: 500px;">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label class="form-label">{{ form.name.label.text }}</label>
+            {{ form.name(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">{{ form.description.label.text }}</label>
+            {{ form.description(class="form-control", rows=2) }}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('categories.index') }}" class="btn btn-outline-secondary ms-2">取消</a>
+    </form>
+</div>
+{% endblock %}

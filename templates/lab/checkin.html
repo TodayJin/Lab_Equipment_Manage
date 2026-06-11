@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}签到 - 电子技术创新实验室{% endblock %}
+{% block page_title %}每日签到 · {{ today.strftime('%m月%d日') }}{% endblock %}
+
+{% block breadcrumb %}
+{% if current_user.is_admin %}
+<a href="{{ url_for('lab.checkin_stats') }}" class="btn btn-sm btn-outline-primary ms-2"><i class="bi bi-bar-chart"></i> 统计</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- 自己的签到卡片 -->
+    {% set my_rec = today_records | selectattr('user_id', 'equalto', current_user.id) | list | first %}
+    <div class="{% if current_user.is_admin %}col-md-4{% else %}col-md-6 mx-auto{% endif %}">
+        <div class="dash-panel">
+            <div class="panel-head"><i class="bi bi-person-circle"></i><span>{{ current_user.username }} 的签到</span></div>
+            <div class="p-4 text-center">
+                {% if my_rec and my_rec.is_checked_in %}
+                {% set last_log = my_rec.logs.all() | last %}
+                <div class="mb-3" id="checkedInBlock"
+                     data-signin-ts="{{ last_log.sign_in_time.strftime('%Y-%m-%dT%H:%M:%SZ') if last_log else '' }}"
+                     data-checked-in="true">
+                    <i class="bi bi-circle-fill text-success" style="font-size:48px"></i>
+                    <h5 class="mt-2 text-success">已签到</h5>
+                    {% if last_log %}<p class="text-muted">{{ last_log.sign_in_time | localtime }} 开始</p>{% endif %}
+                    {% if my_rec.total_duration > 0 %}<p class="small">今日累计 {{ my_rec.total_duration }} 分钟</p>{% endif %}
+                </div>
+                <form method="POST" action="{{ url_for('lab.do_signout', id=my_rec.id) }}">
+                    <button class="btn btn-warning btn-lg w-100"><i class="bi bi-box-arrow-right"></i> 签退</button>
+                </form>
+                {% else %}
+                <div class="mb-3" id="notCheckedInBlock">
+                    <i class="bi bi-circle text-muted" style="font-size:48px"></i>
+                    <h5 class="mt-2 text-muted">未签到</h5>
+                    {% if my_rec and my_rec.total_duration > 0 %}<p class="small">今日累计 {{ my_rec.total_duration }} 分钟</p>{% endif %}
+                </div>
+                <form method="POST" action="{{ url_for('lab.do_signin') }}">
+                    <button class="btn btn-success btn-lg w-100"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
+                </form>
+                {% endif %}
+
+                <!-- 通知权限请求遮罩（仅当未授权时显示） -->
+                <div id="notifOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:2000;align-items:center;justify-content:center">
+                    <div class="text-center" style="background:#fff;border-radius:14px;padding:32px;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1)">
+                        <i class="bi bi-bell-fill" style="font-size:48px;color:#2563eb;display:block;margin-bottom:12px"></i>
+                        <h5 class="fw-bold mb-2">开启通知权限</h5>
+                        <p class="text-muted small mb-3" id="notifMsg">签到后系统会定时提醒你续签确认，即使在浏览器外也能收到。</p>
+                        <button class="btn btn-primary w-100 mb-2" id="notifEnableBtn"><i class="bi bi-bell"></i> 开启通知</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="notifSkipBtn">暂不开启</button>
+                    </div>
+                </div>
+
+                <!-- 倒计时面板：始终渲染，服务端决定初始显示 -->
+                <div class="border rounded-3 p-2 mt-2" style="background:#f8fafc;{% if not (my_rec and my_rec.is_checked_in) %}display:none{% endif %}" id="countdownPanel">
+                    <div class="row text-center small">
+                        <div class="col-6 border-end">
+                            <div class="text-muted">本次在线</div>
+                            <span class="fw-bold text-primary" id="signinDuration">--</span>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted">续签倒计时</div>
+                            <span class="fw-bold" id="afkCountdown" style="color:#f59e0b">--</span>
+                        </div>
+                    </div>
+                </div>
+                {% if my_rec and my_rec.logs.count() > 0 %}
+                <hr class="my-3">
+                <div class="text-start small">
+                    <p class="fw-medium mb-1">今日时段：</p>
+                    {% for log in my_rec.logs.all() %}
+                    <div class="text-muted">{{ log.sign_in_time | localtime }}{% if log.sign_out_time %} → {{ log.sign_out_time | localtime }}（{{ log.duration_minutes }}分钟）{% else %} → ...{% endif %}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_admin %}
+    <!-- 管理员：全部记录 -->
+    <div class="col-md-8">
+        <div class="dash-panel">
+            <div class="panel-head">
+                <i class="bi bi-list-ul"></i><span>全部签到记录</span>
+                <span class="badge bg-primary ms-2">{{ today_records|length }} 人</span>
+            </div>
+            {% if today_records %}
+            <div class="table-container">
+                <table class="table table-sm">
+                    <thead><tr><th>成员</th><th>今日时段</th><th>累计</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody>
+                    {% for r in today_records %}
+                    <tr {% if r.user_id == current_user.id %}class="table-active"{% endif %}>
+                        <td><span class="fw-medium">{{ r.user.username }}</span></td>
+                        <td class="small">
+                            {% for log in r.logs.all() %}
+                            <div>{{ log.sign_in_time | localtime }}{% if log.sign_out_time %}→{{ log.sign_out_time | localtime }}{% else %}→...{% endif %}</div>
+                            {% else %}<span class="text-muted">—</span>{% endfor %}
+                        </td>
+                        <td>{{ r.total_duration }} 分钟</td>
+                        <td>{% if r.is_checked_in %}<span class="badge bg-success">在线</span>{% else %}<span class="badge bg-secondary">离线</span>{% endif %}</td>
+                        <td>
+                            {% if r.is_checked_in %}
+                            <form method="POST" action="{{ url_for('lab.do_signout', id=r.id) }}" class="d-inline">
+                                <button class="btn btn-sm btn-outline-warning">签退</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="bi bi-calendar text-muted"></i><p>今日还没有人签到</p></div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// 签到时间戳写入 localStorage，所有标签页共享续签检测
+(function() {
+    const block = document.getElementById('checkedInBlock');
+    if (block && block.dataset.checkedIn === 'true') {
+        const tsStr = block.dataset.signinTs;
+        if (tsStr) {
+            const ts = new Date(tsStr).getTime();
+            if (!isNaN(ts)) LabRenew.setSignInTs(ts);
+        }
+    } else {
+        localStorage.removeItem('lab_signin_ts');
+        localStorage.removeItem('lab_renew_warned');
+    }
+
+    // 通知权限 — 仅 localhost / https 可用
+    if ('Notification' in window && Notification.permission === 'default') {
+        var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        var isHttps = location.protocol === 'https:';
+
+        if (isLocalhost || isHttps) {
+            var overlay = document.getElementById('notifOverlay');
+            overlay.style.display = 'flex';
+            document.getElementById('notifEnableBtn').onclick = function() {
+                Notification.requestPermission().then(function(perm) {
+                    overlay.style.display = 'none';
+                    if (perm === 'granted') LabToast.show('浏览器通知已开启。', 'success', 3000);
+                });
+            };
+            document.getElementById('notifSkipBtn').onclick = function() {
+                overlay.style.display = 'none';
+            };
+        }
+    }
+})();
+</script>
+{% endblock %}

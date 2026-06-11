@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block page_title %}数据分析{% endblock %}
+
+{% block extra_head %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 fw-bold">
+      <i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>数据分析
+    </h2>
+    <small class="text-muted" id="last-updated"></small>
+  </div>
+
+  <!-- Overview Cards -->
+  <div class="row g-3 mb-4" id="overview-cards">
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+            <i class="bi bi-box-seam fs-4 text-primary"></i>
+          </div>
+          <h5 class="fw-bold mb-0" id="card-total-equipment">-</h5>
+          <small class="text-muted">总器材数</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+            <i class="bi bi-layers fs-4 text-success"></i>
+          </div>
+          <h5 class="fw-bold mb-0" id="card-total-stock">-</h5>
+          <small class="text-muted">库存总量</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+            <i class="bi bi-box-arrow-in-down fs-4 text-info"></i>
+          </div>
+          <h5 class="fw-bold mb-0" id="card-total-checkin">-</h5>
+          <small class="text-muted">总入库量</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+            <i class="bi bi-box-arrow-up fs-4 text-warning"></i>
+          </div>
+          <h5 class="fw-bold mb-0" id="card-total-checkout">-</h5>
+          <small class="text-muted">总出库量</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;">
+            <i class="bi bi-grid fs-4 text-danger"></i>
+          </div>
+          <h5 class="fw-bold mb-0" id="card-category-count">-</h5>
+          <small class="text-muted">分类数</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1: Monthly Trend + Category Donut -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0">
+          <h5 class="fw-bold"><i class="bi bi-graph-up me-2"></i>月度出入库趋势</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="position:relative; height:320px;">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0">
+          <h5 class="fw-bold"><i class="bi bi-pie-chart me-2"></i>器材分类分布</h5>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <div class="chart-container" style="position:relative; height:280px; width:280px;">
+            <canvas id="categoryPieChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2: Top Equipment + User Activity -->
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0">
+          <h5 class="fw-bold"><i class="bi bi-trophy me-2"></i>热门器材 Top 10</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="position:relative; height:320px;">
+            <canvas id="topEquipmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0">
+          <h5 class="fw-bold"><i class="bi bi-people me-2"></i>用户活跃度</h5>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="position:relative; height:320px;">
+            <canvas id="userActivityChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const API = {
+    overview: '/analytics/api/overview',
+    monthlyTrend: '/analytics/api/monthly-trend',
+    categoryDistribution: '/analytics/api/category-distribution',
+    topEquipment: '/analytics/api/top-equipment',
+    userActivity: '/analytics/api/user-activity'
+  };
+
+  const CHART_COLORS = {
+    primary:   'rgba(13, 110, 253, 0.7)',
+    primaryBg: 'rgba(13, 110, 253, 0.12)',
+    success:   'rgba(25, 135, 84, 0.7)',
+    successBg: 'rgba(25, 135, 84, 0.12)',
+    warning:   'rgba(255, 193, 7, 0.7)',
+    danger:    'rgba(220, 53, 69, 0.7)',
+    info:      'rgba(13, 202, 240, 0.7)',
+  };
+
+  const palette = [
+    CHART_COLORS.primary, CHART_COLORS.success, CHART_COLORS.warning,
+    CHART_COLORS.danger, CHART_COLORS.info,
+    'rgba(111, 66, 193, 0.7)', 'rgba(214, 51, 132, 0.7)',
+    'rgba(253, 126, 20, 0.7)', 'rgba(32, 201, 151, 0.7)',
+    'rgba(102, 16, 242, 0.7)'
+  ];
+
+  let monthlyChart, categoryChart, topEquipmentChart, userActivityChart;
+
+  // --- Overview Cards ---
+  fetch(API.overview)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('card-total-equipment').textContent = data.total_equipment ?? '-';
+      document.getElementById('card-total-stock').textContent     = data.total_stock ?? '-';
+      document.getElementById('card-total-checkin').textContent   = data.total_in ?? '-';
+      document.getElementById('card-total-checkout').textContent  = data.total_out ?? '-';
+      document.getElementById('card-category-count').textContent  = data.categories ?? '-';
+      const now = new Date();
+      document.getElementById('last-updated').textContent = '更新于 ' + now.toLocaleTimeString('zh-CN');
+    })
+    .catch(err => console.error('Overview fetch error:', err));
+
+  // --- Monthly Trend Line Chart ---
+  fetch(API.monthlyTrend)
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+      monthlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels || [],
+          datasets: [
+            {
+              label: '入库',
+              data: data.in_data || [],
+              borderColor: CHART_COLORS.success,
+              backgroundColor: CHART_COLORS.successBg,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+            {
+              label: '出库',
+              data: data.out_data || [],
+              borderColor: CHART_COLORS.warning,
+              backgroundColor: 'rgba(255, 193, 7, 0.08)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top' }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    })
+    .catch(err => console.error('MonthlyTrend fetch error:', err));
+
+  // --- Category Donut Chart ---
+  fetch(API.categoryDistribution)
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('categoryPieChart').getContext('2d');
+      categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: data.labels || [],
+          datasets: [{
+            data: data.data || [],
+            backgroundColor: palette,
+            borderWidth: 2,
+            borderColor: '#fff',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, padding: 12, font: { size: 11 } }
+            }
+          }
+        }
+      });
+    })
+    .catch(err => console.error('CategoryDistribution fetch error:', err));
+
+  // --- Top Equipment Horizontal Bar Chart ---
+  fetch(API.topEquipment)
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('topEquipmentChart').getContext('2d');
+      topEquipmentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.labels || [],
+          datasets: [{
+            label: '操作次数',
+            data: data.data || [],
+            backgroundColor: palette,
+            borderWidth: 0,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    })
+    .catch(err => console.error('TopEquipment fetch error:', err));
+
+  // --- User Activity Bar Chart ---
+  fetch(API.userActivity)
+    .then(r => r.json())
+    .then(data => {
+      const ctx = document.getElementById('userActivityChart').getContext('2d');
+      userActivityChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.labels || [],
+          datasets: [{
+            label: '操作次数',
+            data: data.data || [],
+            backgroundColor: CHART_COLORS.primary,
+            borderWidth: 0,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'x',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    })
+    .catch(err => console.error('UserActivity fetch error:', err));
+
+});
+</script>
+{% endblock %}

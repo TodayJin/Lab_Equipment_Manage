@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabManager 设计预览</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+body { background: var(--bg); font-family: 'Noto Sans SC', sans-serif; color: var(--text); padding: 24px; }
+h2 { font-size: 20px; font-weight: 700; margin: 32px 0 16px; display: flex; align-items: center; gap: 8px; }
+h2:first-child { margin-top: 0; }
+h2 .bi { color: var(--primary); }
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+/* ═══════════════ 自定义搜索下拉 ═══════════════ */
+.searchable-select { position: relative; }
+.searchable-select .ss-trigger {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--card-bg); cursor: pointer; transition: var(--transition);
+  min-height: 44px; gap: 8px;
+}
+.searchable-select .ss-trigger:hover { border-color: var(--primary); }
+.searchable-select .ss-trigger:focus-within, .searchable-select.open .ss-trigger {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.searchable-select .ss-trigger input {
+  border: none; outline: none; flex: 1; font-size: 14px; background: transparent;
+  min-width: 0; color: var(--text);
+}
+.searchable-select .ss-trigger input::placeholder { color: var(--text-muted); }
+.searchable-select .ss-trigger .bi-chevron-down { transition: transform var(--transition); color: var(--text-muted); }
+.searchable-select.open .ss-trigger .bi-chevron-down { transform: rotate(180deg); }
+.searchable-select .ss-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg); z-index: 100; display: none;
+  animation: dropdownIn 150ms ease-out;
+  max-height: 320px; overflow: hidden;
+}
+.searchable-select.open .ss-dropdown { display: block; }
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ss-category-tabs {
+  display: flex; gap: 4px; padding: 8px 10px; overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.ss-category-tab {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  white-space: nowrap; cursor: pointer; transition: var(--transition);
+  background: transparent; border: 1px solid transparent; color: var(--text-muted);
+  user-select: none;
+}
+.ss-category-tab:hover { background: #f1f5f9; color: var(--text); }
+.ss-category-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.ss-options { overflow-y: auto; max-height: 220px; padding: 4px 0; }
+.ss-option {
+  padding: 8px 14px; cursor: pointer; transition: background 80ms;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px;
+}
+.ss-option:hover, .ss-option.highlighted { background: #f1f5f9; }
+.ss-option.selected { background: #eef2ff; color: var(--primary); font-weight: 500; }
+.ss-option .stock-info { font-size: 12px; color: var(--text-muted); }
+.ss-option .stock-info.low { color: var(--danger); font-weight: 600; }
+.ss-no-results { padding: 24px; text-align: center; color: var(--text-muted); font-size: 14px; }
+
+/* ═══════════════ 横向标签 ═══════════════ */
+.h-tabs {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px;
+}
+.h-tab {
+  padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500;
+  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: var(--transition); user-select: none;
+}
+.h-tab:hover { color: var(--text); }
+.h-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ═══════════════ 排名卡片 ═══════════════ */
+.rank-list { list-style: none; padding: 0; margin: 0; }
+.rank-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: var(--radius-sm); transition: background var(--transition);
+  cursor: pointer;
+}
+.rank-item:hover { background: #f8fafc; }
+.rank-badge {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.rank-1 { background: #fef3c7; color: #d97706; }
+.rank-2 { background: #e2e8f0; color: #475569; }
+.rank-3 { background: #fed7aa; color: #c2410c; }
+.rank-other { background: #f1f5f9; color: #64748b; }
+.rank-info { flex: 1; min-width: 0; }
+.rank-name { font-weight: 600; font-size: 14px; }
+.rank-detail { font-size: 12px; color: var(--text-muted); }
+.rank-time { font-weight: 700; font-size: 14px; color: var(--primary); }
+
+/* ═══════════════ 时间选择器 ═══════════════ */
+.time-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.time-chip {
+  padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: var(--transition); border: 1.5px solid var(--border);
+  background: var(--card-bg); color: var(--text-muted); user-select: none;
+}
+.time-chip:hover { border-color: var(--primary); color: var(--primary); }
+.time-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.time-custom { display: flex; gap: 6px; align-items: center; }
+.time-custom input {
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 5px 10px; font-size: 13px; width: 130px;
+}
+
+/* ═══════════════ 级联删除弹窗 ═══════════════ */
+.delete-warning {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm);
+  padding: 16px; margin-bottom: 16px;
+}
+.delete-warning .bi { color: var(--danger); }
+.cascade-list { font-size: 13px; color: var(--text-muted); margin: 8px 0 0 20px; }
+
+/* ═══════════════ 异常数据清除 ═══════════════ */
+.admin-clean-card { border-left: 4px solid var(--warning); }
+
+/* ═══════════════ 标签面板 ═══════════════ */
+.tab-panel { animation: fadeIn 200ms ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════ 弹窗 ═══════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn 150ms ease-out;
+}
+.modal-card {
+  background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 720px; max-height: 85vh; overflow-y: auto; padding: 24px;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-close { font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1; transition: var(--transition); border: none; background: none; }
+.modal-close:hover { color: var(--text); }
+
+.table-container { overflow-x: auto; }
+.member-row:hover { background: #f8fafc; }
+</style>
+</head>
+<body>
+<div class="container" style="max-width: 960px;">
+
+<!-- ═══════════════ 设计1：可搜索器材选择器 ═══════════════ -->
+<h2><i class="bi bi-search"></i> 设计一：入库/出库器材选择器</h2>
+<p class="text-muted small mb-3">替代原有 &lt;select&gt;，支持关键词搜索 + 按分类筛选，中文输入时不打断</p>
+
+<div class="card p-4">
+  <label class="form-label fw-semibold">选择器材 <span class="text-danger">*</span></label>
+  <div class="searchable-select" id="demoSelect">
+    <div class="ss-trigger" onclick="openDropdown()">
+      <i class="bi bi-search text-muted"></i>
+      <input type="text" placeholder="搜索器材名称、型号…" id="ssInput"
+             onfocus="openDropdown()" onkeydown="handleKey(event)"
+             oncompositionstart="composing=true" oncompositionend="composing=false; filterOptions()"
+             oninput="if(!composing) filterOptions()">
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="ss-dropdown" id="ssDropdown">
+      <div class="ss-category-tabs">
+        <span class="ss-category-tab active" onclick="filterByCategory('all', this)">全部</span>
+        <span class="ss-category-tab" onclick="filterByCategory('玻璃器皿', this)">玻璃器皿</span>
+        <span class="ss-category-tab" onclick="filterByCategory('电子设备', this)">电子设备</span>
+        <span class="ss-category-tab" onclick="filterByCategory('化学品', this)">化学品</span>
+        <span class="ss-category-tab" onclick="filterByCategory('工具', this)">工具</span>
+      </div>
+      <div class="ss-options" id="ssOptions"></div>
+    </div>
+  </div>
+  <div id="selectedDisplay" class="mt-3 small text-muted"></div>
+</div>
+
+<!-- ═══════════════ 设计2：签到统计增强 ═══════════════ -->
+<h2><i class="bi bi-bar-chart"></i> 设计二：签到统计增强</h2>
+<p class="text-muted small mb-3">横向标签分块（总览 / 排名 / 个人详情），时间段快捷选择，可点击成员查看详情</p>
+
+<div class="card p-4" id="statsApp">
+  <!-- 时间段选择 -->
+  <div class="time-chips" id="timeChips">
+    <span class="time-chip active" data-period="week">近一周</span>
+    <span class="time-chip" data-period="month">近一月</span>
+    <span class="time-chip" data-period="2month">近两月</span>
+    <span class="time-chip" data-period="semester">本学期</span>
+    <span class="time-custom">
+      <input type="date" id="dateFrom" value="2026-05-01" class="form-control form-control-sm">
+      <span class="text-muted">—</span>
+      <input type="date" id="dateTo" value="2026-06-10" class="form-control form-control-sm">
+    </span>
+    <button class="btn btn-sm btn-outline-primary" onclick="applyTimeFilter()">查询</button>
+  </div>
+
+  <!-- 横向标签 -->
+  <div class="h-tabs" id="mainTabs">
+    <span class="h-tab active" data-tab="overview">总览</span>
+    <span class="h-tab" data-tab="ranking">时长排名</span>
+    <span class="h-tab" data-tab="daily">每日明细</span>
+  </div>
+
+  <!-- ═══ 面板一：总览 ═══ -->
+  <div class="tab-panel" id="panel-overview">
+    <div class="row g-3 mb-4">
+      <div class="col-3"><div class="border rounded-3 p-3 text-center"><div style="font-size:24px;font-weight:700;color:var(--primary)">12</div><small class="text-muted">签到人数</small></div></div>
+      <div class="col-3"><div class="border rounded-3 p-3 text-center"><div style="font-size:24px;font-weight:700;color:var(--success)">41</div><small class="text-muted">统计天数</small></div></div>
+      <div class="col-3"><div class="border rounded-3 p-3 text-center"><div style="font-size:24px;font-weight:700;color:var(--warning)">186</div><small class="text-muted">日均(分钟)</small></div></div>
+      <div class="col-3"><div class="border rounded-3 p-3 text-center"><div style="font-size:24px;font-weight:700;color:var(--danger)">2230</div><small class="text-muted">人均(分钟)</small></div></div>
+    </div>
+    <h6 class="fw-bold mb-2">按人汇总 <small class="text-muted fw-normal">（点击成员查看每日明细）</small></h6>
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
+        <tbody id="overviewTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 面板二：时长排名 ═══ -->
+  <div class="tab-panel" id="panel-ranking" style="display:none">
+    <h6 class="fw-bold mb-3">在线时长排名 <span class="badge bg-secondary ms-1" id="rankingPeriodLabel">近一月</span></h6>
+    <div class="rank-list mb-3" id="rankingList"></div>
+    <p class="text-muted small"><i class="bi bi-info-circle"></i> 点击任意成员可查看其每日在线时长明细</p>
+  </div>
+
+  <!-- ═══ 面板三：每日明细 ═══ -->
+  <div class="tab-panel" id="panel-daily" style="display:none">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <h6 class="fw-bold mb-0">每日在线时长趋势</h6>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="showMemberDetail(null)"><i class="bi bi-people"></i> 切换成员</button>
+    </div>
+    <canvas id="dailyTrendChart" height="200" class="mb-3"></canvas>
+    <h6 class="fw-bold mb-2">签到时段明细</h6>
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>日期</th><th>成员</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+        <tbody id="dailyLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 成员详情弹窗 -->
+<div class="modal-overlay" id="memberModal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h5 class="fw-bold mb-0"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
+      <span class="modal-close" onclick="closeMemberModal()">&times;</span>
+    </div>
+    <div class="time-chips mb-3" id="modalTimeChips">
+      <span class="time-chip active" data-period="week">近一周</span>
+      <span class="time-chip" data-period="month">近一月</span>
+      <span class="time-chip" data-period="2month">近两月</span>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长(分钟)</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均(分钟)</small></div></div>
+    </div>
+    <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+        <tbody id="modalLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 设计3：级联删除 ═══════════════ -->
+<h2><i class="bi bi-trash"></i> 设计三：器材级联删除</h2>
+<p class="text-muted small mb-3">有出入库记录的器材也能删除，确认弹窗显示将级联清除的数据量</p>
+
+<div class="card p-4">
+  <h5 class="fw-bold">删除器材 "STM32F407 开发板"</h5>
+  <div class="delete-warning">
+    <div><i class="bi bi-exclamation-triangle-fill"></i> <strong>此操作不可撤销！</strong>将级联删除以下关联数据：</div>
+    <ul class="cascade-list">
+      <li>出入库记录：<strong>23 条</strong></li>
+      <li>操作日志：<strong>5 条</strong></li>
+    </ul>
+    <div class="mt-2"><strong>当前库存：42 个</strong>（库存数据也将清空）</div>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-danger"><i class="bi bi-trash"></i> 确认删除</button>
+    <button class="btn btn-outline-secondary">取消</button>
+  </div>
+</div>
+
+<!-- ═══════════════ 设计4：管理员清除异常数据 ═══════════════ -->
+<h2><i class="bi bi-shield-exclamation"></i> 设计四：管理员清除异常数据</h2>
+<p class="text-muted small mb-3">管理后台新增加「数据清理」面板，可清除异常出入库记录和签到记录</p>
+
+<div class="card p-4 admin-clean-card">
+  <div class="row g-4">
+    <div class="col-md-6">
+      <h6><i class="bi bi-box-arrow-in-down"></i> 清除异常出入库记录</h6>
+      <div class="mb-2">
+        <label class="form-label small">器材</label>
+        <select class="form-select form-select-sm"><option>全部器材</option></select>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">操作人</label>
+        <select class="form-select form-select-sm"><option>全部用户</option></select>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">时间范围</label>
+        <div class="d-flex gap-2"><input type="date" class="form-control form-control-sm"><input type="date" class="form-control form-control-sm"></div>
+      </div>
+      <div class="form-check form-check-inline small mb-2">
+        <input class="form-check-input" type="checkbox"><label>仅已撤销的记录</label>
+      </div>
+      <button class="btn btn-sm btn-outline-danger">预览匹配记录</button>
+    </div>
+    <div class="col-md-6">
+      <h6><i class="bi bi-person-check"></i> 清除异常签到记录</h6>
+      <div class="mb-2">
+        <label class="form-label small">成员</label>
+        <select class="form-select form-select-sm"><option>全部成员</option></select>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">时间范围</label>
+        <div class="d-flex gap-2"><input type="date" class="form-control form-control-sm"><input type="date" class="form-control form-control-sm"></div>
+      </div>
+      <button class="btn btn-sm btn-outline-danger">预览匹配记录</button>
+    </div>
+  </div>
+  <hr>
+  <p class="text-muted small mb-0"><i class="bi bi-info-circle"></i> 预览后展示匹配记录列表，管理员确认后执行删除。被删除的记录会写入专门的清理日志。</p>
+</div>
+
+</div>
+
+<script>
+// ═══════════════ Demo: 可搜索下拉框逻辑 ═══════════════
+const equipmentData = [
+  {id:1, name:'STM32F407开发板', model:'VGT6', packaging:'板装', category:'电子设备', stock:42, unit:'块', threshold:10},
+  {id:2, name:'烧杯 500ml', model:'B-500', packaging:'箱装', category:'玻璃器皿', stock:8, unit:'个', threshold:20},
+  {id:3, name:'示波器探头', model:'P6100', packaging:'盒装', category:'电子设备', stock:15, unit:'个', threshold:5},
+  {id:4, name:'无水乙醇', model:'AR500', packaging:'瓶装', category:'化学品', stock:3, unit:'瓶', threshold:10},
+  {id:5, name:'电烙铁', model:'936', packaging:'盒装', category:'工具', stock:20, unit:'把', threshold:5},
+  {id:6, name:'杜邦线 母对母', model:'20cm', packaging:'袋装', category:'电子设备', stock:200, unit:'根', threshold:50},
+  {id:7, name:'万用表', model:'DT9205A', packaging:'盒装', category:'电子设备', stock:6, unit:'台', threshold:3},
+  {id:8, name:'镊子', model:'ST-11', packaging:'—', category:'工具', stock:25, unit:'把', threshold:10},
+  {id:9, name:'试管 15mm', model:'T-15', packaging:'箱装', category:'玻璃器皿', stock:50, unit:'支', threshold:30},
+  {id:10, name:'面包板', model:'830孔', packaging:'—', category:'电子设备', stock:18, unit:'块', threshold:10},
+  {id:11, name:'焊锡丝', model:'0.8mm', packaging:'卷装', category:'工具', stock:5, unit:'卷', threshold:8},
+  {id:12, name:'丙酮', model:'AR500', packaging:'瓶装', category:'化学品', stock:2, unit:'瓶', threshold:5},
+];
+
+let composing = false;
+let currentCategory = 'all';
+let selectedId = null;
+
+function renderOptions(data) {
+  const container = document.getElementById('ssOptions');
+  if (data.length === 0) {
+    container.innerHTML = '<div class="ss-no-results"><i class="bi bi-inbox d-block mb-1" style="font-size:24px"></i>没找到匹配的器材</div>';
+    return;
+  }
+  container.innerHTML = data.map(e => {
+    const isLow = e.stock <= e.threshold && e.threshold > 0;
+    const selClass = e.id === selectedId ? ' selected' : '';
+    return `<div class="ss-option${selClass}" data-id="${e.id}" onclick="selectItem(${e.id})">
+      <div><span class="fw-medium">${e.name}</span> <small class="text-muted">${e.model}</small><br><small class="text-muted">${e.category} · ${e.packaging}</small></div>
+      <span class="stock-info${isLow ? ' low' : ''}">库存: ${e.stock}${e.unit}${isLow ? ' ⚠' : ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterOptions() {
+  const q = document.getElementById('ssInput').value.toLowerCase();
+  let filtered = equipmentData;
+  if (currentCategory !== 'all') filtered = filtered.filter(e => e.category === currentCategory);
+  if (q) filtered = filtered.filter(e => e.name.toLowerCase().includes(q) || e.model.toLowerCase().includes(q));
+  renderOptions(filtered);
+}
+
+function filterByCategory(cat, el) {
+  currentCategory = cat;
+  document.querySelectorAll('.ss-category-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  filterOptions();
+}
+
+function openDropdown() {
+  document.getElementById('demoSelect').classList.add('open');
+  filterOptions();
+}
+function closeDropdown() { document.getElementById('demoSelect').classList.remove('open'); }
+function selectItem(id) {
+  selectedId = id;
+  const e = equipmentData.find(x => x.id === id);
+  document.getElementById('ssInput').value = `${e.name} (${e.model})`;
+  document.getElementById('selectedDisplay').innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> 已选择：<strong>${e.name}</strong> · 型号：${e.model} · 封装：${e.packaging} · 分类：${e.category} · 库存：${e.stock}${e.unit}`;
+  renderOptions(equipmentData.filter(x => currentCategory === 'all' || x.category === currentCategory));
+  closeDropdown();
+}
+function handleKey(e) {
+  if (e.key === 'Escape') { closeDropdown(); e.preventDefault(); }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); /* 简化demo，不实现键盘导航 */ }
+  if (e.key === 'Enter') { e.preventDefault(); filterOptions(); }
+}
+
+// 点击外部关闭
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('demoSelect').contains(e.target)) closeDropdown();
+});
+
+// 初始化
+renderOptions(equipmentData);
+
+// ═══════════════ Demo: 签到统计交互逻辑 ═══════════════
+const memberData = [
+  {name:'张三', days:38, totalMin:7030, avgMin:185, sessions:62, daily:[
+    {date:'06-10', in:'08:30', out:'17:45', min:520},{date:'06-09', in:'09:00', out:'18:00', min:540},
+    {date:'06-08', in:'08:15', out:'16:30', min:495},{date:'06-07', in:'08:45', out:'18:20', min:575},
+    {date:'06-06', in:'09:10', out:'17:30', min:500},{date:'06-05', in:'08:30', out:'18:00', min:570},
+    {date:'06-04', in:'08:00', out:'16:00', min:480},{date:'06-03', in:'08:30', out:'17:15', min:525},
+  ]},
+  {name:'李四', days:35, totalMin:5670, avgMin:162, sessions:58, daily:[
+    {date:'06-10', in:'09:00', out:'17:00', min:480},{date:'06-09', in:'08:30', out:'16:30', min:480},
+    {date:'06-08', in:'09:15', out:'17:45', min:510},{date:'06-07', in:'08:00', out:'15:30', min:450},
+    {date:'06-06', in:'08:45', out:'17:00', min:495},{date:'06-05', in:'09:30', out:'18:00', min:510},
+    {date:'06-04', in:'08:15', out:'16:45', min:510},{date:'06-03', in:'09:00', out:'17:30', min:510},
+  ]},
+  {name:'王五', days:32, totalMin:4736, avgMin:148, sessions:50, daily:[
+    {date:'06-10', in:'09:30', out:'17:00', min:450},{date:'06-09', in:'08:00', out:'15:00', min:420},
+    {date:'06-08', in:'09:00', out:'17:30', min:510},{date:'06-07', in:'08:30', out:'16:00', min:450},
+    {date:'06-06', in:'09:15', out:'17:45', min:510},{date:'06-05', in:'08:45', out:'16:30', min:465},
+    {date:'06-04', in:'09:00', out:'17:00', min:480},{date:'06-03', in:'08:30', out:'16:15', min:465},
+  ]},
+  {name:'赵六', days:28, totalMin:3696, avgMin:132, sessions:42, daily:[
+    {date:'06-10', in:'09:00', out:'16:00', min:420},{date:'06-09', in:'08:30', out:'15:30', min:420},
+    {date:'06-08', in:'09:30', out:'17:00', min:450},{date:'06-06', in:'08:00', out:'14:30', min:390},
+    {date:'06-05', in:'09:15', out:'16:45', min:450},{date:'06-04', in:'08:45', out:'15:30', min:405},
+  ]},
+];
+
+let currentPeriod = 'month';
+let currentTab = 'overview';
+let currentMember = null;
+
+// 时间段切换
+document.getElementById('timeChips').addEventListener('click', function(e){
+  if (e.target.classList.contains('time-chip')) {
+    this.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    currentPeriod = e.target.dataset.period;
+    updateAllViews();
+  }
+});
+
+// 横向标签切换
+document.getElementById('mainTabs').addEventListener('click', function(e){
+  if (e.target.classList.contains('h-tab')) {
+    this.querySelectorAll('.h-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentTab = e.target.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.getElementById('panel-' + currentTab).style.display = '';
+    if (currentTab === 'ranking') renderRanking();
+    if (currentTab === 'daily') renderDailyTrend();
+  }
+});
+
+// 弹窗时间段切换
+document.getElementById('modalTimeChips').addEventListener('click', function(e){
+  if (e.target.classList.contains('time-chip')) {
+    this.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    if (currentMember) showMemberDetail(currentMember, e.target.dataset.period);
+  }
+});
+
+function getRank(members, m) {
+  const sorted = [...members].sort((a,b) => b.totalMin - a.totalMin);
+  return sorted.findIndex(x => x.name === m.name) + 1;
+}
+
+function rankClass(rank) {
+  if (rank === 1) return 'rank-1';
+  if (rank === 2) return 'rank-2';
+  if (rank === 3) return 'rank-3';
+  return 'rank-other';
+}
+
+function updateAllViews() {
+  renderOverviewTable();
+  if (currentTab === 'ranking') renderRanking();
+}
+
+function renderOverviewTable() {
+  const tbody = document.getElementById('overviewTableBody');
+  tbody.innerHTML = memberData.map(m => {
+    const rank = getRank(memberData, m);
+    return `<tr style="cursor:pointer" onclick="showMemberDetail('${m.name}')" class="member-row">
+      <td class="fw-medium"><span class="rank-badge ${rankClass(rank)} me-2" style="display:inline-flex;vertical-align:middle">${rank}</span>${m.name}</td>
+      <td>${m.days} 天</td><td>${m.totalMin} 分钟</td><td>${m.avgMin} 分钟</td><td>${m.sessions} 次</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRanking() {
+  const sorted = [...memberData].sort((a,b) => b.totalMin - a.totalMin);
+  document.getElementById('rankingList').innerHTML = sorted.map((m,i) => {
+    const r = i+1;
+    return `<div class="rank-item" onclick="showMemberDetail('${m.name}')" style="cursor:pointer">
+      <span class="rank-badge ${rankClass(r)}">${r}</span>
+      <div class="rank-info"><div class="rank-name">${m.name}</div><div class="rank-detail">到勤 ${m.days} 天 · 平均 ${m.avgMin} 分钟/天</div></div>
+      <span class="rank-time">${m.totalMin.toLocaleString()} 分钟</span>
+    </div>`;
+  }).join('');
+  document.getElementById('rankingPeriodLabel').textContent =
+    {week:'近一周',month:'近一月','2month':'近两月',semester:'本学期'}[currentPeriod] || '近一月';
+}
+
+function renderDailyTrend() {
+  // Simple bar representation (no Chart.js in demo)
+  const container = document.getElementById('dailyTrendChart').parentElement;
+  const allDays = memberData.flatMap(m => m.daily.map(d => d.date));
+  const uniqueDays = [...new Set(allDays)].sort();
+  const dailyTotals = {};
+  uniqueDays.forEach(d => { dailyTotals[d] = memberData.reduce((sum,m) => sum + (m.daily.find(x=>x.date===d)?.min||0), 0); });
+
+  const canvas = document.getElementById('dailyTrendChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.clientWidth - 32;
+  canvas.height = 200;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const entries = Object.entries(dailyTotals);
+  if (entries.length === 0) return;
+  const maxVal = Math.max(...entries.map(e=>e[1]));
+  const barW = (canvas.width - 40) / entries.length - 6;
+  const chartH = canvas.height - 40;
+
+  ctx.font = '10px "Noto Sans SC"';
+  ctx.fillStyle = '#64748b';
+  entries.forEach(([date,val], i) => {
+    const x = 20 + i*(barW+6);
+    const h = (val/maxVal)*chartH;
+    ctx.fillStyle = '#6366f1';
+    ctx.beginPath(); ctx.roundRect(x, chartH-h+10, barW, h, [4,4,0,0]); ctx.fill();
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(date, x, canvas.height-5);
+    if (i%2===0) { ctx.fillStyle = '#0f172a'; ctx.fillText(val+'', x, chartH-h+5); }
+  });
+
+  // Fill daily log table
+  const allLogs = memberData.flatMap(m => m.daily.map(d => ({...d, name:m.name})));
+  allLogs.sort((a,b) => b.date.localeCompare(a.date));
+  document.getElementById('dailyLogBody').innerHTML = allLogs.map(l =>
+    `<tr><td class="text-muted small">${l.date}</td><td>${l.name}</td><td>${l.in}</td><td>${l.out}</td><td>${l.min} 分钟</td></tr>`
+  ).join('');
+}
+
+function showMemberDetail(name, period) {
+  const m = memberData.find(x => x.name === name);
+  if (!m) return;
+  currentMember = name;
+  document.getElementById('modalMemberName').textContent = name;
+  document.getElementById('modalDays').textContent = m.days + ' 天';
+  document.getElementById('modalTotal').textContent = m.totalMin.toLocaleString() + ' 分钟';
+  document.getElementById('modalAvg').textContent = m.avgMin + ' 分钟';
+
+  document.getElementById('modalLogBody').innerHTML = m.daily.map(d =>
+    `<tr><td class="text-muted small">${d.date}</td><td>${d.in}</td><td>${d.out}</td><td>${d.min} 分钟</td></tr>`
+  ).join('');
+
+  document.getElementById('memberModal').style.display = 'flex';
+
+  // Mini chart in modal
+  setTimeout(() => {
+    const canvas = document.getElementById('modalDailyChart');
+    canvas.width = canvas.parentElement.clientWidth - 32;
+    canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const maxVal = Math.max(...m.daily.map(d=>d.min), 1);
+    const barW = (canvas.width - 40) / m.daily.length - 6;
+    const chartH = canvas.height - 40;
+    m.daily.forEach((d,i) => {
+      const x = 20 + i*(barW+6);
+      const h = (d.min/maxVal)*chartH;
+      const gradient = ctx.createLinearGradient(x, chartH-h+10, x, chartH+10);
+      gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
+      ctx.fillStyle = gradient;
+      ctx.beginPath(); ctx.roundRect(x, chartH-h+10, barW, h, [4,4,0,0]); ctx.fill();
+      ctx.fillStyle = '#64748b'; ctx.font = '10px "Noto Sans SC"';
+      ctx.fillText(d.date, x, canvas.height-5);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px "Noto Sans SC"';
+      ctx.fillText(d.min+'m', x, chartH-h+5);
+    });
+  }, 50);
+}
+
+function closeMemberModal() {
+  document.getElementById('memberModal').style.display = 'none';
+  currentMember = null;
+}
+document.getElementById('memberModal').addEventListener('click', function(e){
+  if (e.target === this) closeMemberModal();
+});
+
+function applyTimeFilter() {
+  currentPeriod = 'custom';
+  document.querySelectorAll('#timeChips .time-chip').forEach(c => c.classList.remove('active'));
+  updateAllViews();
+}
+
+// 初始化
+renderOverviewTable();
+</script>
+</body>
+</html>

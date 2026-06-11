@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}用户设置 - 电子技术创新实验室{% endblock %}
+{% block page_title %}用户设置{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width:600px">
+    <!-- 深色模式 — 即时切换 -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <label class="form-label fw-semibold mb-1">
+                    <i class="bi bi-moon-stars me-2"></i>深色模式
+                </label>
+                <p class="text-muted small mb-0" id="dmHint">
+                    {% if dark_mode %}已开启深色模式{% else %}点击开关即时切换{% endif %}
+                </p>
+            </div>
+            <div class="form-check form-switch ms-3">
+                <input class="form-check-input dm-toggle" type="checkbox" role="switch"
+                       style="width:3em; height:1.5em;"
+                       {% if dark_mode %}checked{% endif %}
+                       onchange="toggleDarkMode(this)">
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- 每页显示数量 — 需要保存 -->
+    <form method="POST" id="pageForm">
+        <div class="mb-4">
+            <label class="form-label fw-semibold">
+                <i class="bi bi-list-ol me-2"></i>每页显示数量
+            </label>
+            <p class="text-muted small mb-2">设置列表页面每页显示的数据条数</p>
+            <select class="form-select" name="items_per_page">
+                <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10 条</option>
+                <option value="15" {% if items_per_page == 15 %}selected{% endif %}>15 条</option>
+                <option value="20" {% if items_per_page == 20 %}selected{% endif %}>20 条</option>
+                <option value="30" {% if items_per_page == 30 %}selected{% endif %}>30 条</option>
+                <option value="50" {% if items_per_page == 50 %}selected{% endif %}>50 条</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">保存设置</button>
+            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-key"></i> 修改密码
+            </a>
+        </div>
+    </form>
+</div>
+
+{% block extra_scripts %}
+<script>
+function toggleDarkMode(checkbox) {
+    const dark = checkbox.checked;
+    const hint = document.getElementById('dmHint');
+
+    // Add overlay animation
+    let overlay = document.createElement('div');
+    overlay.className = 'theme-overlay';
+    if (!dark) overlay.style.background = '#fff';
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+    });
+
+    setTimeout(() => {
+        // Enable/disable the dark CSS stylesheet
+        const darkCss = document.getElementById('dark-css');
+        if (dark) {
+            document.documentElement.classList.add('dark');
+            if (darkCss) darkCss.disabled = false;
+        } else {
+            document.documentElement.classList.remove('dark');
+            if (darkCss) darkCss.disabled = true;
+        }
+        hint.textContent = dark ? '已开启深色模式' : '已关闭深色模式';
+
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 600);
+        }, 150);
+
+        // Save to server
+        fetch('/settings/api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({dark_mode: dark})
+        });
+    }, 300);
+}
+</script>
+{% endblock %}
+{% endblock %}

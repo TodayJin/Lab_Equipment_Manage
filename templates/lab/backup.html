@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}数据备份 - 电子技术创新实验室{% endblock %}
+{% block page_title %}数据备份 & 恢复{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('lab.notices') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> 返回</a>
+{% endblock %}
+
+{% block content %}
+<div class="dash-grid">
+    <div class="dash-panel">
+        <div class="panel-head"><i class="bi bi-download"></i><span>导出备份</span></div>
+        <div class="p-4 text-center">
+            <i class="bi bi-cloud-download" style="font-size:48px;color:var(--primary)"></i>
+            <p class="mt-3 text-muted">将所有数据（器材、记录、用户、设置）打包为一个 .zip 文件下载</p>
+            <a href="{{ url_for('lab.backup_download') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-download me-1"></i> 下载备份
+            </a>
+        </div>
+    </div>
+
+    <div class="dash-panel">
+        <div class="panel-head"><i class="bi bi-upload"></i><span>恢复数据</span></div>
+        <div class="p-4 text-center">
+            <i class="bi bi-cloud-upload" style="font-size:48px;color:var(--warning)"></i>
+            <p class="mt-3 text-muted">上传之前导出的 .zip 备份文件，恢复所有数据</p>
+            <p class="text-danger small">⚠ 当前数据将被覆盖，请先做好备份</p>
+            <form method="POST" action="{{ url_for('lab.backup_restore') }}" enctype="multipart/form-data">
+                <input type="file" name="backup_file" accept=".zip" class="form-control mb-2" required>
+                <button class="btn btn-warning btn-lg w-100" onclick="return confirm('确定恢复数据？当前数据将被覆盖！')">
+                    <i class="bi bi-upload me-1"></i> 恢复数据
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
