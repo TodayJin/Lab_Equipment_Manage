@@ -226,19 +226,19 @@ function renderRanking() {
   }
   const maxMin = RANKING_DATA[0].total_minutes || 1;
   const medals = ['🥇', '🥈', '🥉'];
-  const colors = ['#fbbf24', '#94a3b8', '#d97706'];
-  const bgColors = ['linear-gradient(135deg, #fef3c7, #fff9e6)', 'linear-gradient(135deg, #f1f5f9, #f8fafc)', 'linear-gradient(135deg, #fff7ed, #fef2f2)'];
+  const colors = ['#f59e0b', '#64748b', '#d97706'];
+  const gradients = ['#f59e0b, #fbbf24', '#64748b, #94a3b8', '#d97706, #f97316'];
 
   list.innerHTML = RANKING_DATA.map((m, i) => {
     const name = (m.username || '').replace(/'/g, "\\'");
     const pct = Math.round(m.total_minutes / maxMin * 100);
     const isTop3 = i < 3;
-    return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" onclick="openMemberDetail('${name}', ${m.user_id})">
+    return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" style="display:flex;align-items:center;gap:16px" onclick="openMemberDetail('${name}', ${m.user_id})">
       <div class="ranking-rank">${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}</div>
-      <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : 'var(--primary)'}">${name.charAt(0)}</div>
+      <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : '#6366f1'}">${name.charAt(0)}</div>
       <div class="ranking-body">
         <div class="ranking-name">${m.username}</div>
-        <div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? colors[i] : 'var(--primary)'}"></div></div>
+        <div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? 'linear-gradient(90deg,'+gradients[i]+')' : 'linear-gradient(90deg,#6366f1,#8b5cf6)'}"></div></div>
       </div>
       <div class="ranking-total">${fmtTime(m.total_minutes)}<div class="ranking-pct">${pct}%</div></div>
     </div>`;
