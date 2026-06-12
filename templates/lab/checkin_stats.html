@@ -234,17 +234,10 @@ function renderRanking() {
     const pct = Math.round(m.total_minutes / maxMin * 100);
     const isTop3 = i < 3;
     return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" onclick="openMemberDetail('${name}', ${m.user_id})">
-      <div class="ranking-rank">
-        ${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}
-      </div>
-      <div class="ranking-avatar">${name.charAt(0)}</div>
+      <div class="ranking-rank">${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}</div>
+      <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : 'var(--primary)'}">${name.charAt(0)}</div>
       <div class="ranking-body">
         <div class="ranking-name">${m.username}</div>
-        <div class="ranking-stats">
-          <span><i class="bi bi-calendar-check"></i> ${m.days} 天</span>
-          <span><i class="bi bi-person-check"></i> ${m.sessions} 次</span>
-          <span><i class="bi bi-clock"></i> 日均 ${fmtTime(m.avg_minutes)}</span>
-        </div>
         <div class="ranking-bar-wrap">
           <div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? colors[i] : 'var(--primary)'}"></div>
         </div>

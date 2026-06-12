@@ -1062,30 +1062,28 @@ a:not(.btn):not(.nav-item):not(.page-link):not(.dropdown-item) {
 /* ═══════════════ RANKING LIST ═══════════════ */
 /* ═══════════════ RANKING CARDS ═══════════════ */
 .ranking-card {
-  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
   border-radius: var(--radius); transition: all var(--transition);
   cursor: pointer; border: 1px solid var(--gray-200); margin-bottom: 8px;
   background: #fff;
 }
-.ranking-card:hover { border-color: var(--primary); transform: translateX(4px); box-shadow: var(--shadow-md); }
-.ranking-card.top-1 { border-color: #fbbf24; background: linear-gradient(135deg, #fffbeb, #fff); }
-.ranking-card.top-2 { border-color: #94a3b8; background: linear-gradient(135deg, #f8fafc, #fff); }
-.ranking-card.top-3 { border-color: #d97706; background: linear-gradient(135deg, #fff7ed, #fff); }
-.ranking-rank { width: 40px; text-align: center; flex-shrink: 0; }
+.ranking-card:hover { transform: translateX(6px); box-shadow: var(--shadow-md); }
+.ranking-card.top-1 { border-color: #fbbf24; background: linear-gradient(135deg, #fffbeb 0%, #fff 60%); }
+.ranking-card.top-2 { border-color: #94a3b8; background: linear-gradient(135deg, #f8fafc 0%, #fff 60%); }
+.ranking-card.top-3 { border-color: #d97706; background: linear-gradient(135deg, #fff7ed 0%, #fff 60%); }
+.ranking-rank { width: 42px; text-align: center; flex-shrink: 0; }
 .ranking-medal { font-size: 28px; line-height: 1; }
 .ranking-num { font-size: 18px; font-weight: 700; color: var(--gray-600); }
 .ranking-avatar {
   width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: 700; color: #fff;
-  background: var(--primary);
 }
 .ranking-body { flex: 1; min-width: 0; }
-.ranking-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-.ranking-stats { display: flex; gap: 12px; font-size: 12px; color: var(--gray-600); margin-bottom: 6px; }
+.ranking-name { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
 .ranking-bar-wrap { height: 6px; border-radius: 3px; background: var(--gray-200); overflow: hidden; }
 .ranking-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-.ranking-total { font-weight: 700; font-size: 15px; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
+.ranking-total { font-weight: 700; font-size: 16px; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
 
 /* ═══════════════ MODAL ═══════════════ */
 .modal-overlay {
