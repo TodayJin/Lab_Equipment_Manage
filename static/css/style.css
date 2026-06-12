@@ -1060,38 +1060,103 @@ a:not(.btn):not(.nav-item):not(.page-link):not(.dropdown-item) {
 .time-custom input {
 
 /* ═══════════════ RANKING LIST ═══════════════ */
-/* ═══════════════ RANKING CARDS ═══════════════ */
+/* ═══════════════ RANKING ═══════════════ */
 .ranking-card {
-  display: flex; align-items: center; gap: 16px; padding: 18px 20px;
-  border-radius: var(--radius); transition: all var(--transition);
-  cursor: pointer; border: 1.5px solid var(--gray-200); margin-bottom: 14px;
-  background: #fff; position: relative; overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 4px solid #cbd5e1;
 }
-.ranking-card::after {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-  border-radius: 0 2px 2px 0;
+.ranking-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: #94a3b8;
 }
-.ranking-card:hover { transform: translateX(6px); box-shadow: var(--shadow-lg); border-color: #cbd5e1; }
-.ranking-card.top-1 { border-color: #fbbf24; box-shadow: 0 2px 12px rgba(251,191,36,0.15); }
-.ranking-card.top-1::after { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
-.ranking-card.top-2 { border-color: #94a3b8; box-shadow: 0 2px 10px rgba(148,163,184,0.12); }
-.ranking-card.top-2::after { background: linear-gradient(180deg, #64748b, #94a3b8); }
-.ranking-card.top-3 { border-color: #d97706; box-shadow: 0 2px 10px rgba(217,119,6,0.12); }
-.ranking-card.top-3::after { background: linear-gradient(180deg, #c2410c, #d97706); }
-.ranking-rank { width: 44px; text-align: center; flex-shrink: 0; }
-.ranking-medal { font-size: 32px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15)); }
-.ranking-num { font-size: 20px; font-weight: 800; color: var(--gray-400); }
+.ranking-card.top-1 {
+  border-color: #fbbf24;
+  border-left-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(251,191,36,0.15);
+}
+.ranking-card.top-1:hover {
+  box-shadow: 0 4px 16px rgba(251,191,36,0.25);
+}
+.ranking-card.top-2 {
+  border-color: #94a3b8;
+  border-left-color: #64748b;
+}
+.ranking-card.top-3 {
+  border-color: #fdba74;
+  border-left-color: #d97706;
+}
+.ranking-rank {
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.ranking-medal {
+  font-size: 30px;
+  line-height: 1;
+}
+.ranking-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: #94a3b8;
+}
 .ranking-avatar {
-  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 700; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.ranking-body { flex: 1; min-width: 0; }
-.ranking-name { font-weight: 600; font-size: 16px; margin-bottom: 6px; color: var(--gray-900); }
-.ranking-bar-wrap { height: 8px; border-radius: 4px; background: var(--gray-100); overflow: hidden; }
-.ranking-bar { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
-.ranking-total { font-weight: 700; font-size: 16px; color: var(--primary); white-space: nowrap; flex-shrink: 0; text-align: right; }
-.ranking-pct { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+.ranking-body {
+  flex: 1;
+  min-width: 0;
+}
+.ranking-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+.ranking-bar-wrap {
+  height: 8px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+.ranking-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+.ranking-total {
+  font-weight: 700;
+  font-size: 15px;
+  color: #2563eb;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+  line-height: 1.3;
+}
+.ranking-pct {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
 
 /* ═══════════════ MODAL ═══════════════ */
 .modal-overlay {
