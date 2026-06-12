@@ -133,6 +133,23 @@ def unread_count():
     return jsonify({'count': count})
 
 
+@chat_bp.route('/mark-read', methods=['POST'])
+@login_required
+def mark_read():
+    """标记当前已读位置"""
+    from src.models import UserSettings
+    latest = ChatMessage.query.order_by(ChatMessage.id.desc()).first()
+    if latest:
+        stg = UserSettings.query.filter_by(user_id=current_user.id).first()
+        if not stg:
+            stg = UserSettings(user_id=current_user.id)
+            db.session.add(stg)
+        if latest.id > (stg.last_read_chat_id or 0):
+            stg.last_read_chat_id = latest.id
+            db.session.commit()
+    return jsonify({'ok': True})
+
+
 # ═══════════════ 共享文件 ═══════════════
 
 @chat_bp.route('/files')

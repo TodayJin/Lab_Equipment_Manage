@@ -145,6 +145,8 @@ setInterval(() => {
             appendMessage(m, isOwn);
             lastId = m.id;
         });
+        // 更新服务器已读位置
+        fetch('/chat/mark-read', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
     });
 }, 2000);
 

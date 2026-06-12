@@ -275,6 +275,12 @@ const LabToast = {
 // ═══════════════ 全局未读消息轮询（所有页面生效） ═══════════════
 (function() {
     function poll() {
+        // 在群聊/共享文件页面不显示未读红点
+        if (location.pathname.startsWith('/chat')) {
+            var badge = document.querySelector('.chat-unread-badge');
+            if (badge) badge.style.display = 'none';
+            return;
+        }
         fetch('/chat/unread')
         .then(r => r.json()).then(function(data) {
             var badge = document.querySelector('.chat-unread-badge');
@@ -283,7 +289,6 @@ const LabToast = {
                     badge.textContent = data.count;
                     badge.style.display = '';
                 } else {
-                    // Create badge if it doesn't exist
                     var navItem = document.querySelector('.sidebar-nav a[href*="/chat"]');
                     if (navItem && !navItem.querySelector('.chat-unread-badge')) {
                         var span = document.createElement('span');
@@ -298,8 +303,8 @@ const LabToast = {
         }).catch(function() {});
     }
 
-    poll(); // First run immediately
-    setInterval(poll, 3000); // Poll every 3s
+    poll();
+    setInterval(poll, 3000);
 })();
 
 // ═══════════════ 全局 P2P 文件轮询（所有页面生效） ═══════════════
