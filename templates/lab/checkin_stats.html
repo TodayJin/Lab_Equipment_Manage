@@ -238,11 +238,9 @@ function renderRanking() {
       <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : 'var(--primary)'}">${name.charAt(0)}</div>
       <div class="ranking-body">
         <div class="ranking-name">${m.username}</div>
-        <div class="ranking-bar-wrap">
-          <div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? colors[i] : 'var(--primary)'}"></div>
-        </div>
+        <div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? colors[i] : 'var(--primary)'}"></div></div>
       </div>
-      <div class="ranking-total">${fmtTime(m.total_minutes)}</div>
+      <div class="ranking-total">${fmtTime(m.total_minutes)}<div class="ranking-pct">${pct}%</div></div>
     </div>`;
   }).join('');
   document.getElementById('rankingPeriodLabel').textContent =
