@@ -6,7 +6,7 @@
     <title>{% block title %}电子技术创新实验室 - 器材管理系统{% endblock %}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.2.1" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.2.1" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}?v=3.2.1" id="dark-css"
           {% if not (current_user.is_authenticated and current_user.dark_mode_enabled) %}disabled{% endif %}>
     {% block extra_head %}{% endblock %}
