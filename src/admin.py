@@ -1145,7 +1145,28 @@ class ServerManager:
 
     @staticmethod
     def _get_gh_token():
-        """尝试从 gh CLI 获取 GitHub token"""
+        """从 gh CLI 配置文件或环境变量读取 GitHub token"""
+        # 1. 环境变量
+        token = os.environ.get("GITHUB_TOKEN", "") or os.environ.get("GH_TOKEN", "")
+        if token:
+            return token
+        # 2. 直接读取 gh 配置文件（无需安装 gh CLI）
+        config_paths = [
+            os.path.join(os.environ.get("APPDATA", ""), "GitHub CLI", "hosts.yml"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".config", "gh", "hosts.yml"),
+            os.path.join(os.path.expanduser("~"), ".config", "gh", "hosts.yml"),
+        ]
+        for cfg in config_paths:
+            try:
+                if os.path.exists(cfg):
+                    with open(cfg, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("oauth_token:"):
+                                return line.split(":", 1)[1].strip()
+            except Exception:
+                continue
+        # 3. 尝试通过 gh CLI 获取
         try:
             r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5,
                                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)

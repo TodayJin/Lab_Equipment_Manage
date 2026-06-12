@@ -112,8 +112,6 @@ python build.py
 
 管理面板（双击 exe 或 `admin.bat`）中点击 **🔄 检查更新**，自动检测 GitHub Release 最新版本，下载并替换 exe，旧版自动备份。
 
-> 需安装 [GitHub CLI](https://cli.github.com/) 并执行 `gh auth login` 登录，否则可能因 API 限流检查失败。
-
 ### 手动升级
 
 1. 关闭旧版程序
