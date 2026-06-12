@@ -13,6 +13,7 @@ import queue
 import webbrowser
 import json
 import urllib.request
+import urllib.error
 import tempfile
 import time
 from pathlib import Path
@@ -1009,10 +1010,25 @@ class ServerManager:
         threading.Thread(target=self._do_check_update, daemon=True).start()
 
     def _do_check_update(self):
+        # 尝试获取 GitHub token 避免限流
+        token = self._get_gh_token()
+        headers = {"User-Agent": "LabManager"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
         try:
-            req = urllib.request.Request(GITHUB_API, headers={"User-Agent": "LabManager"})
+            req = urllib.request.Request(GITHUB_API, headers=headers)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            msg = f"HTTP {e.code}"
+            if e.code == 403:
+                msg += "（API 限流，请稍后重试）"
+            if e.code == 404:
+                msg += "（未找到发布版本）"
+            self.root.after(0, lambda: self._append_log(f"[更新] 检查失败: {msg}\n"))
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+            return
         except Exception as e:
             self.root.after(0, lambda: self._append_log(f"[更新] 检查失败: {e}\n"))
             self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
@@ -1064,7 +1080,7 @@ class ServerManager:
         try:
             tmp = tempfile.NamedTemporaryFile(suffix=".exe", delete=False)
             tmp_path = tmp.name
-            req2 = urllib.request.Request(dl_url, headers={"User-Agent": "LabManager"})
+            req2 = urllib.request.Request(dl_url, headers=headers)
             with urllib.request.urlopen(req2, timeout=300) as resp2:
                 total = 0
                 while True:
@@ -1126,6 +1142,18 @@ class ServerManager:
                 self.root.after(0, lambda: self._append_log(f"[更新] 保存失败: {e}\n"))
 
         self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+
+    @staticmethod
+    def _get_gh_token():
+        """尝试从 gh CLI 获取 GitHub token"""
+        try:
+            r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=5,
+                               creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0)
+            if r.returncode == 0:
+                return r.stdout.strip()
+        except Exception:
+            pass
+        return None
 
     @staticmethod
     def _is_newer(new_tag, cur_tag):
