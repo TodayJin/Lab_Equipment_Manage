@@ -1068,30 +1068,38 @@ class ServerManager:
             self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
             return
 
-        # 下载
+        # 下载（支持重试）
         self.root.after(0, lambda: self._append_log(f"[更新] 正在下载 {latest_tag}...\n"))
         self.root.after(0, lambda: self.btn_update.configure(text=f"⏳ 下载中..."))
         self.root.after(0, lambda: self.root.update_idletasks())
 
-        try:
-            tmp = tempfile.NamedTemporaryFile(suffix=".exe", delete=False)
-            tmp_path = tmp.name
-            req2 = urllib.request.Request(dl_url, headers=headers)
-            with urllib.request.urlopen(req2, timeout=300) as resp2:
-                total = 0
-                while True:
-                    chunk = resp2.read(65536)
-                    if not chunk:
-                        break
-                    tmp.write(chunk)
-                    total += len(chunk)
-                tmp.close()
-        except Exception as e:
-            self.root.after(0, lambda: self._append_log(f"[更新] 下载失败: {e}\n"))
-            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
-            try: os.unlink(tmp_path)
-            except: pass
-            return
+        tmp_path = None
+        total = 0
+        for attempt in range(3):
+            try:
+                tmp = tempfile.NamedTemporaryFile(suffix=".exe", delete=False)
+                tmp_path = tmp.name
+                req2 = urllib.request.Request(dl_url, headers=headers)
+                with urllib.request.urlopen(req2, timeout=600) as resp2:
+                    total = 0
+                    while True:
+                        chunk = resp2.read(65536)
+                        if not chunk:
+                            break
+                        tmp.write(chunk)
+                        total += len(chunk)
+                    tmp.close()
+                break  # 成功
+            except Exception as e:
+                try: os.unlink(tmp_path)
+                except: pass
+                if attempt < 2:
+                    self.root.after(0, lambda: self._append_log(f"[更新] 下载失败，2秒后重试（{attempt+2}/3）...\n"))
+                    time.sleep(2)
+                else:
+                    self.root.after(0, lambda: self._append_log(f"[更新] 下载失败: {e}\n"))
+                    self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+                    return
 
         self.root.after(0, lambda: self._append_log(f"[更新] 下载完成（{total / 1048576:.1f} MB）\n"))
 
