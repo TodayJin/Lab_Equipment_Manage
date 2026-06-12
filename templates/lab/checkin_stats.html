@@ -47,7 +47,7 @@
     <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
     {% if person_stats %}
     <div class="table-container">
-              <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
+      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
         <tbody>
           {% for name, ps in person_stats.items() %}
           <tr class="member-row" onclick="openMemberDetail('{{ name }}', {{ ps.user_id }})" title="点击查看 {{ name }} 的每日明细">
@@ -94,28 +94,32 @@
   </div>
 </div>
 
-<!-- 成员详情弹窗 -->
-<div class="modal-overlay" id="memberModal" style="display:none">
-  <div class="modal-card">
-    <div class="modal-header">
-      <h5 class="fw-bold mb-0"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
-      <button class="modal-close" onclick="closeMemberModal()">&times;</button>
-    </div>
-    <div class="time-chips mb-3" id="modalTimeChips">
-      <span class="time-chip" data-period="week">近一周</span>
-      <span class="time-chip active" data-period="month">近一月</span>
-      <span class="time-chip" data-period="2month">近两月</span>
-    </div>
-    <div class="row g-3 mb-3">
-      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
-      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长</small></div></div>
-      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均</small></div></div>
-    </div>
-    <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
-    <div class="table-container">
-      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
-        <tbody id="modalLogBody"></tbody>
-      </table>
+<!-- 成员详情弹窗 — 使用 Bootstrap Modal -->
+<div class="modal fade" id="memberModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="time-chips mb-3" id="modalTimeChips">
+          <span class="time-chip" data-period="week">近一周</span>
+          <span class="time-chip active" data-period="month">近一月</span>
+          <span class="time-chip" data-period="2month">近两月</span>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
+          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长</small></div></div>
+          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均</small></div></div>
+        </div>
+        <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
+        <div class="table-container">
+          <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+            <tbody id="modalLogBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -128,6 +132,7 @@ let currentPeriod = 'month';
 let currentTab = 'overview';
 let currentMemberName = null;
 let currentMemberId = null;
+let bsModal = null;
 
 function fmtTime(mins) {
   if (mins == null || isNaN(mins) || mins <= 0) return '—';
@@ -148,7 +153,6 @@ function fmtTime(mins) {
   return d + ' 天 ' + h + ' 小时 ' + m + ' 分钟';
 }
 
-// Pre-loaded data from server (no AJAX needed)
 const RANKING_DATA = {{ ranking_json | tojson }};
 const MEMBER_DETAILS = {{ member_details_json | tojson }};
 
@@ -234,11 +238,8 @@ function loadDailyCharts(range) {
   fetch(`/lab/checkin/stats?json=chart&from=${range.from}&to=${range.to}`)
   .then(r => r.json()).then(data => {
     const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#6366f1'];
-
-    // Destroy existing charts
     Chart.getChart('dailyChart')?.destroy();
     Chart.getChart('barChart')?.destroy();
-
     new Chart(document.getElementById('dailyChart'), {
       type: 'line', data: {
         labels: data.daily.labels,
@@ -249,7 +250,6 @@ function loadDailyCharts(range) {
         }]
       }, options: { responsive: true, plugins: { legend: { display: false } } }
     });
-
     new Chart(document.getElementById('barChart'), {
       type: 'bar', data: {
         labels: data.person.labels,
@@ -268,7 +268,8 @@ function openMemberDetail(name, userId) {
   currentMemberName = name;
   currentMemberId = userId;
   document.getElementById('modalMemberName').textContent = name;
-  document.getElementById('memberModal').style.display = 'flex';
+  if (!bsModal) bsModal = new bootstrap.Modal(document.getElementById('memberModal'));
+  bsModal.show();
   loadMemberDetail(userId);
 }
 
@@ -293,15 +294,12 @@ function loadMemberDetail(userId, period) {
     document.getElementById('modalAvg').textContent = '—';
     return;
   }
-
   document.getElementById('modalDays').textContent = data.days + ' 天';
   document.getElementById('modalTotal').textContent = fmtTime(data.total_minutes);
   document.getElementById('modalAvg').textContent = fmtTime(data.avg_minutes);
-
   document.getElementById('modalLogBody').innerHTML = data.daily.map(d =>
     `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : fmtTime(d.minutes)}</td></tr>`
   ).join('') || '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无记录</p></div></td></tr>';
-
   // Mini chart
   setTimeout(() => {
     const canvas = document.getElementById('modalDailyChart');
@@ -313,8 +311,7 @@ function loadMemberDetail(userId, period) {
       type: 'bar', data: {
         labels: reversed.map(d => d.date),
         datasets: [{
-          label: '在线时长（分钟）',
-          data: reversed.map(d => d.minutes),
+          label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
           backgroundColor: reversed.map(() => {
             const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
@@ -327,28 +324,11 @@ function loadMemberDetail(userId, period) {
   }, 100);
 }
 
-function closeMemberModal() {
-  document.getElementById('memberModal').style.display = 'none';
-  currentMemberName = null;
-  currentMemberId = null;
-}
-document.getElementById('memberModal').addEventListener('click', function(e) {
-  if (e.target === this || e.target.classList.contains('modal-overlay')) closeMemberModal();
-});
-
 // ═══════════════ Initialize ═══════════════
 document.addEventListener('DOMContentLoaded', function() {
-  // Auto-format server-rendered time values
   document.querySelectorAll('.dur-val').forEach(el => {
     const mins = parseInt(el.dataset.minutes);
     if (!isNaN(mins)) el.textContent = fmtTime(mins);
-  });
-  // Remove unit labels from header columns
-  document.querySelectorAll('.dur-unit-col').forEach(el => {
-    if (el.textContent.includes('分钟')) el.textContent = '时长';
-  });
-  document.querySelectorAll('.dur-unit').forEach(el => {
-    if (el.textContent.includes('分钟')) el.textContent = '';
   });
 });
 </script>
