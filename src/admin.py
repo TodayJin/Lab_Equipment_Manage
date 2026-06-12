@@ -1103,24 +1103,35 @@ class ServerManager:
 
         # 替换 exe
         current_exe = sys.executable if IS_FROZEN else None
-        target_name = f"LabManager-{latest_tag}.exe"
 
         if IS_FROZEN:
             exe_dir = os.path.dirname(current_exe)
-            new_path = os.path.join(exe_dir, target_name)
-            old_backup = os.path.join(exe_dir, target_name + ".old")
+            # 新 exe 直接覆盖当前文件，保持原名方便开机自启
+            new_path = os.path.join(exe_dir, os.path.basename(current_exe))
+            old_backup = os.path.join(exe_dir, f"LabManager-{CURRENT_VERSION}.exe")
 
             def _replace():
                 try:
+                    # 移动临时文件到目标位置（当前 exe 运行中不能直接覆盖）
+                    replace_cmd = (
+                        f'@echo off\r\n'
+                        f'timeout /t 2 /nobreak >nul\r\n'
+                        f'move /y "{tmp_path}" "{new_path}"\r\n'
+                        f'if exist "{new_path}" start "" "{new_path}" --auto\r\n'
+                        f'del "%~f0"\r\n'
+                    )
+                    bat_path = os.path.join(tempfile.gettempdir(), "labmanager_update.bat")
+                    with open(bat_path, "w") as f:
+                        f.write(replace_cmd)
                     # 备份旧版
-                    if os.path.exists(new_path):
-                        os.replace(new_path, old_backup)
-                    # 移动新文件
-                    os.replace(tmp_path, new_path)
-                    self._append_log(f"[更新] 已安装至 {new_path}\n")
-                    self._append_log(f"[更新] 更新完成，请重新启动程序。\n")
-                    messagebox.showinfo("更新完成",
-                        f"新版本已安装到:\n{new_path}\n\n请重新启动程序以生效。\n\n旧版本已备份为 {target_name}.old")
+                    if os.path.exists(old_backup):
+                        try: os.remove(old_backup)
+                        except: pass
+                    os.replace(new_path, old_backup)
+                    # 启动更新脚本并退出
+                    subprocess.Popen(f'cmd /c "{bat_path}"', shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    self._append_log(f"[更新] 已安装，正在重启...\n")
+                    self._do_quit()
                 except Exception as e:
                     self._append_log(f"[更新] 文件替换失败: {e}\n")
 
