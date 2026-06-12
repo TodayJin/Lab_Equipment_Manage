@@ -51,6 +51,7 @@ class UserSettings(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     dark_mode = db.Column(db.Boolean, default=False)
     items_per_page = db.Column(db.Integer, default=15)
+    last_read_chat_id = db.Column(db.Integer, default=0)
 
     def to_dict(self):
         return {

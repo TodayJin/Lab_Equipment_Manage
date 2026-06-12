@@ -123,6 +123,20 @@ body {
 
 .nav-item i { font-size: 18px; width: 20px; text-align: center; }
 
+.chat-unread-badge {
+    margin-left: auto;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    padding: 0 5px;
+}
+
 .nav-divider {
     height: 1px;
     background: rgba(255,255,255,0.06);

@@ -36,6 +36,21 @@ def index():
     # 最近200条消息
     messages = ChatMessage.query.order_by(ChatMessage.created_at.desc()).limit(200).all()
     messages.reverse()
+
+    # 标记所有消息为已读
+    if messages:
+        try:
+            latest = messages[-1]
+            from src.models import UserSettings
+            stg = UserSettings.query.filter_by(user_id=current_user.id).first()
+            if not stg:
+                stg = UserSettings(user_id=current_user.id)
+                db.session.add(stg)
+            stg.last_read_chat_id = latest.id
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     return render_template('chat/index.html', messages=messages)
 
 
@@ -105,6 +120,17 @@ def send():
             'time_str': (msg.created_at + timedelta(hours=8)).strftime('%H:%M'),
         })
     return redirect(url_for('chat.index'))
+
+
+@chat_bp.route('/unread')
+@login_required
+def unread_count():
+    """返回当前用户的未读消息数 JSON"""
+    from src.models import UserSettings
+    stg = UserSettings.query.filter_by(user_id=current_user.id).first()
+    last_id = stg.last_read_chat_id if stg else 0
+    count = ChatMessage.query.filter(ChatMessage.id > last_id, ChatMessage.user_id != current_user.id).count()
+    return jsonify({'count': count})
 
 
 # ═══════════════ 共享文件 ═══════════════

@@ -49,6 +49,9 @@
                 </a>
                 <a href="{{ url_for('chat.index') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.index' }}">
                     <i class="bi bi-chat-dots"></i><span>群聊</span>
+                    {% if unread_count %}
+                    <span class="chat-unread-badge">{{ unread_count }}</span>
+                    {% endif %}
                 </a>
                 <a href="{{ url_for('chat.files_list') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.files_list' }}">
                     <i class="bi bi-folder2-open"></i><span>共享文件</span>

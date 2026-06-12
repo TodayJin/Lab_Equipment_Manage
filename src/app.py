@@ -89,6 +89,20 @@ def create_app():
             return {'avatar_url': '/account/avatar-img/' + _cu.avatar}
         return {'avatar_url': ''}
 
+    @app.context_processor
+    def inject_unread():
+        try:
+            from flask_login import current_user as _cu
+            if _cu.is_authenticated:
+                from src.models import UserSettings, ChatMessage
+                stg = UserSettings.query.filter_by(user_id=_cu.id).first()
+                last_id = stg.last_read_chat_id if stg else 0
+                count = ChatMessage.query.filter(ChatMessage.id > last_id, ChatMessage.user_id != _cu.id).count()
+                return {'unread_count': count}
+        except Exception:
+            pass
+        return {'unread_count': 0}
+
     from src.auth import auth_bp
     from src.equipment import equipment_bp
     from src.stock import stock_bp
