@@ -5,7 +5,7 @@
 <p align="center">电子技术创新实验室 · 器材管理系统</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v3.2-blue">
+  <img src="https://img.shields.io/badge/version-v3.2.1-blue">
   <img src="https://img.shields.io/badge/python-3.10+-green">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey">
 </p>
@@ -105,7 +105,7 @@ http://localhost:5000
 
 ```bash
 python build.py
-# 输出 dist/LabManager-V3.2.exe
+# 输出 dist/LabManager-V3.2.1.exe
 ```
 
 ### 一键更新

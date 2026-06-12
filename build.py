@@ -3,7 +3,7 @@ import PyInstaller.__main__
 
 PyInstaller.__main__.run([
     "src/admin.py",
-    "--name=LabManager-V3.2",
+    "--name=LabManager-V3.2.1",
     "--onefile",
     "--windowed",
     "--noconsole",

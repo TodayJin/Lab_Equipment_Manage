@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 from src.settings import load as load_settings, save as save_settings, DEFAULTS as SETTING_DEFAULTS, get_default_db_path
 
 # 版本和更新配置
-CURRENT_VERSION = "v3.2"
+CURRENT_VERSION = "v3.2.1"
 GITHUB_REPO = "TodayJin/Lab_Equipment_Manage"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
