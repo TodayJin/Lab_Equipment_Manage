@@ -1062,6 +1062,16 @@ a:not(.btn):not(.nav-item):not(.page-link):not(.dropdown-item) {
   padding: 5px 10px; font-size: 13px; width: 130px;
 }
 
+/* ═══════════════ UNIT TOGGLER ═══════════════ */
+.unit-toggler { display: flex; gap: 4px; margin-left: auto; }
+.unit-chip {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all var(--transition); border: 1.5px solid var(--gray-300);
+  background: #fff; color: var(--gray-600); user-select: none;
+}
+.unit-chip:hover { border-color: var(--success); color: var(--success); }
+.unit-chip.active { background: var(--success); color: #fff; border-color: var(--success); }
+
 /* ═══════════════ RANKING LIST ═══════════════ */
 .rank-list { list-style: none; padding: 0; margin: 0; }
 .rank-item {

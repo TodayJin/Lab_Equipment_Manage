@@ -25,6 +25,11 @@
     </span>
     <button class="btn btn-sm btn-outline-primary" onclick="applyCustomRange()">查询</button>
   </div>
+  <div class="unit-toggler" id="unitToggler">
+    <span class="unit-chip active" data-unit="min">分钟</span>
+    <span class="unit-chip" data-unit="hour">小时</span>
+    <span class="unit-chip" data-unit="day">天</span>
+  </div>
 </div>
 
 <!-- 横向标签 -->
@@ -39,22 +44,22 @@
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">{{ person_stats|length }}</div><div class="stat-label">签到人数</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">{{ total_days }}</div><div class="stat-label">统计天数</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value">{{ avg_daily }}</div><div class="stat-label">日均在线(分钟)</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value">{{ avg_per_person }}</div><div class="stat-label">人均在线(分钟)</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_daily }}">{{ avg_daily }}</div><div class="stat-label dur-unit">分钟</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_per_person }}">{{ avg_per_person }}</div><div class="stat-label dur-unit">分钟</div></div></div>
   </div>
 
   <div class="dash-panel">
     <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
     {% if person_stats %}
     <div class="table-container">
-      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
+      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th class="dur-unit-col">累计时长</th><th class="dur-unit-col">平均/天</th><th>签到次数</th></tr></thead>
         <tbody>
           {% for name, ps in person_stats.items() %}
           <tr class="member-row" onclick="openMemberDetail('{{ name }}', {{ ps.user_id }})" title="点击查看 {{ name }} 的每日明细">
             <td class="fw-medium">{{ name }}</td>
             <td>{{ ps.days }} 天</td>
-            <td>{{ ps.total_min }} 分钟</td>
-            <td>{{ ps.get('avg_min', (ps.total_min // (ps.days if ps.days > 0 else 1))) }} 分钟</td>
+            <td class="dur-val" data-minutes="{{ ps.total_min }}">{{ ps.total_min }} 分钟</td>
+            <td class="dur-val" data-minutes="{{ ps.get('avg_min', (ps.total_min // (ps.days if ps.days > 0 else 1))) }}">{{ ps.get('avg_min', (ps.total_min // (ps.days if ps.days > 0 else 1))) }} 分钟</td>
             <td>{{ ps.count }} 次</td>
           </tr>
           {% endfor %}
@@ -87,8 +92,8 @@
     <div class="panel-head"><i class="bi bi-list-ul"></i><span>签到时段明细</span><span class="badge bg-secondary ms-2" id="logCount">{{ logs|length }} 条</span></div>
     {% if logs %}
     <div class="table-container">
-      <table class="table table-sm"><thead><tr><th>日期</th><th>成员</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
-        <tbody>{% for log in logs %}<tr><td class="text-muted small">{{ log.attendance.date.strftime('%m-%d') }}</td><td>{{ log.attendance.user.username }}</td><td>{{ log.sign_in_time | localtime }}</td><td>{{ log.sign_out_time | localtime if log.sign_out_time else '—' }}</td><td>{{ log.duration_minutes }} 分钟</td></tr>{% endfor %}</tbody>
+      <table class="table table-sm"><thead><tr><th>日期</th><th>成员</th><th>签到</th><th>签退</th><th class="dur-unit-col">时长(分钟)</th></tr></thead>
+        <tbody>{% for log in logs %}<tr><td class="text-muted small">{{ log.attendance.date.strftime('%m-%d') }}</td><td>{{ log.attendance.user.username }}</td><td>{{ log.sign_in_time | localtime }}</td><td>{{ log.sign_out_time | localtime if log.sign_out_time else '—' }}</td><td class="dur-val" data-minutes="{{ log.duration_minutes }}">{{ log.duration_minutes }} 分钟</td></tr>{% endfor %}</tbody>
       </table>
     </div>{% else %}<div class="empty-state py-2"><p>暂无记录</p></div>{% endif %}
   </div>
@@ -108,12 +113,12 @@
     </div>
     <div class="row g-3 mb-3">
       <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
-      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长(分钟)</small></div></div>
-      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均(分钟)</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted dur-unit">总时长(分钟)</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted dur-unit">日均(分钟)</small></div></div>
     </div>
     <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
     <div class="table-container">
-      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th class="dur-unit-col">时长(分钟)</th></tr></thead>
         <tbody id="modalLogBody"></tbody>
       </table>
     </div>
@@ -128,6 +133,16 @@ let currentPeriod = 'month';
 let currentTab = 'overview';
 let currentMemberName = null;
 let currentMemberId = null;
+let currentUnit = 'min';
+const UNIT_LABELS = {min: '分钟', hour: '小时', day: '天'};
+
+function fmtTime(mins, unit) {
+  if (mins == null || isNaN(mins)) return '—';
+  unit = unit || currentUnit;
+  if (unit === 'hour') return (mins / 60).toFixed(1) + ' 小时';
+  if (unit === 'day') return (mins / 480).toFixed(2) + ' 天';
+  return mins + ' 分钟';
+}
 
 // Pre-loaded data from server (no AJAX needed)
 const RANKING_DATA = {{ ranking_json | tojson }};
@@ -202,8 +217,8 @@ function renderRanking() {
     const name = (m.username || '').replace(/'/g, "\\'");
     return `<div class="rank-item" onclick="openMemberDetail('${name}', ${m.user_id})">
       <span class="rank-badge ${rc(r)}">${r}</span>
-      <div class="rank-info"><div class="rank-name">${m.username}</div><div class="rank-detail">到勤 ${m.days} 天 · 平均 ${m.avg_minutes} 分钟/天</div></div>
-      <span class="rank-time">${m.total_minutes.toLocaleString()} 分钟</span>
+      <div class="rank-info"><div class="rank-name">${m.username}</div><div class="rank-detail">到勤 ${m.days} 天 · 平均 ${fmtTime(m.avg_minutes)}</div></div>
+      <span class="rank-time">${fmtTime(m.total_minutes)}</span>
     </div>`;
   }).join('');
   document.getElementById('rankingPeriodLabel').textContent =
@@ -276,11 +291,11 @@ function loadMemberDetail(userId, period) {
   }
 
   document.getElementById('modalDays').textContent = data.days + ' 天';
-  document.getElementById('modalTotal').textContent = data.total_minutes.toLocaleString() + ' 分钟';
-  document.getElementById('modalAvg').textContent = data.avg_minutes + ' 分钟';
+  document.getElementById('modalTotal').textContent = fmtTime(data.total_minutes);
+  document.getElementById('modalAvg').textContent = fmtTime(data.avg_minutes);
 
   document.getElementById('modalLogBody').innerHTML = data.daily.map(d =>
-    `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : d.minutes + ' 分钟'}</td></tr>`
+    `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : fmtTime(d.minutes)}</td></tr>`
   ).join('') || '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无记录</p></div></td></tr>';
 
   // Mini chart
@@ -290,11 +305,17 @@ function loadMemberDetail(userId, period) {
     Chart.getChart('modalDailyChart')?.destroy();
     const reversed = [...data.daily].reverse();
     if (reversed.length === 0) return;
+    const chartData = reversed.map(d => {
+      if (currentUnit === 'hour') return parseFloat((d.minutes / 60).toFixed(1));
+      if (currentUnit === 'day') return parseFloat((d.minutes / 480).toFixed(2));
+      return d.minutes;
+    });
     new Chart(canvas, {
       type: 'bar', data: {
         labels: reversed.map(d => d.date),
         datasets: [{
-          label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
+          label: '在线时长（' + UNIT_LABELS[currentUnit] + '）',
+          data: chartData,
           backgroundColor: reversed.map(() => {
             const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
@@ -320,5 +341,35 @@ document.getElementById('memberModal').addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   // Load charts on daily tab if it's visible initially (it isn't — overview is default)
 });
+
+// ═══════════════ Unit toggle ═══════════════
+document.getElementById('unitToggler').addEventListener('click', function(e) {
+  if (e.target.classList.contains('unit-chip')) {
+    this.querySelectorAll('.unit-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    currentUnit = e.target.dataset.unit;
+    updateAllTimeDisplays();
+  }
+});
+
+function updateAllTimeDisplays() {
+  // Update unit labels
+  document.querySelectorAll('.dur-unit').forEach(el => {
+    el.textContent = el.textContent.replace(/[分钟时小天]+.*$/, UNIT_LABELS[currentUnit]);
+  });
+  document.querySelectorAll('.dur-unit-col').forEach(el => {
+    el.textContent = '时长(' + UNIT_LABELS[currentUnit] + ')';
+  });
+  // Update server-rendered time values
+  document.querySelectorAll('.dur-val').forEach(el => {
+    const mins = parseInt(el.dataset.minutes);
+    if (!isNaN(mins)) el.textContent = fmtTime(mins);
+  });
+  // Re-render JS sections
+  if (currentTab === 'ranking') renderRanking();
+  if (currentMemberId && document.getElementById('memberModal').style.display === 'flex') {
+    loadMemberDetail(currentMemberId);
+  }
+}
 </script>
 {% endblock %}
