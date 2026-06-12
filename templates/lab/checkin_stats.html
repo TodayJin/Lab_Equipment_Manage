@@ -39,15 +39,15 @@
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">{{ person_stats|length }}</div><div class="stat-label">签到人数</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">{{ total_days }}</div><div class="stat-label">统计天数</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_daily }}">{{ avg_daily }} 分钟</div><div class="stat-label">日均在线</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_per_person }}">{{ avg_per_person }} 分钟</div><div class="stat-label">人均在线</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_daily }}">{{ avg_daily }}</div><div class="stat-label">日均在线</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_per_person }}">{{ avg_per_person }}</div><div class="stat-label">人均在线</div></div></div>
   </div>
 
   <div class="dash-panel">
     <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
     {% if person_stats %}
     <div class="table-container">
-              <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
+      <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
         <tbody>
           {% for name, ps in person_stats.items() %}
           <tr class="member-row" onclick="openMemberDetail('{{ name }}', {{ ps.user_id }})" title="点击查看 {{ name }} 的每日明细">
@@ -313,8 +313,7 @@ function loadMemberDetail(userId, period) {
       type: 'bar', data: {
         labels: reversed.map(d => d.date),
         datasets: [{
-          label: '在线时长（分钟）',
-          data: reversed.map(d => d.minutes),
+          label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
           backgroundColor: reversed.map(() => {
             const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
@@ -338,17 +337,9 @@ document.getElementById('memberModal').addEventListener('click', function(e) {
 
 // ═══════════════ Initialize ═══════════════
 document.addEventListener('DOMContentLoaded', function() {
-  // Auto-format server-rendered time values
   document.querySelectorAll('.dur-val').forEach(el => {
     const mins = parseInt(el.dataset.minutes);
     if (!isNaN(mins)) el.textContent = fmtTime(mins);
-  });
-  // Remove unit labels from header columns
-  document.querySelectorAll('.dur-unit-col').forEach(el => {
-    if (el.textContent.includes('分钟')) el.textContent = '时长';
-  });
-  document.querySelectorAll('.dur-unit').forEach(el => {
-    if (el.textContent.includes('分钟')) el.textContent = '';
   });
 });
 </script>
