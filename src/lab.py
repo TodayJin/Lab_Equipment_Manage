@@ -272,17 +272,31 @@ def checkin_stats():
             Attendance.user_id == uid,
             Attendance.date >= dt_from, Attendance.date <= dt_to
         ).order_by(Attendance.date.desc(), AttendanceLog.sign_in_time.desc()).limit(60).all()
+        day_map = {}
+        for l in ulogs:
+            d = l.attendance.date.isoformat()
+            if d not in day_map:
+                day_map[d] = {'total_min': 0, 'sign_in_time': l.sign_in_time, 'sign_out_time': l.sign_out_time,
+                              'is_active': False, 'sessions': 0}
+            day_map[d]['total_min'] += l.duration_minutes
+            day_map[d]['sessions'] += 1
+            if l.sign_in_time < day_map[d]['sign_in_time']:
+                day_map[d]['sign_in_time'] = l.sign_in_time
+            if l.sign_out_time and (not day_map[d]['sign_out_time'] or l.sign_out_time > day_map[d]['sign_out_time']):
+                day_map[d]['sign_out_time'] = l.sign_out_time
+            if l.sign_out_time is None:
+                day_map[d]['is_active'] = True
         udays = set(); utotal = 0
         udaily = []
-        for l in ulogs:
-            udays.add(l.attendance.date)
-            utotal += l.duration_minutes
+        for d, agg in sorted(day_map.items(), reverse=True):
+            udays.add(d)
+            utotal += agg['total_min']
             udaily.append({
-                'date': l.attendance.date.isoformat(),
-                'sign_in': (l.sign_in_time + timedelta(hours=8)).strftime('%H:%M'),
-                'sign_out': (l.sign_out_time + timedelta(hours=8)).strftime('%H:%M') if l.sign_out_time else None,
-                'minutes': l.duration_minutes,
-                'is_active': l.sign_out_time is None,
+                'date': d,
+                'sign_in': (agg['sign_in_time'] + timedelta(hours=8)).strftime('%H:%M'),
+                'sign_out': (agg['sign_out_time'] + timedelta(hours=8)).strftime('%H:%M') if agg['sign_out_time'] else None,
+                'minutes': agg['total_min'],
+                'is_active': agg['is_active'],
             })
         u = db.session.get(User, uid)
         member_details[str(uid)] = {
@@ -327,17 +341,31 @@ def user_checkin_detail(user_id):
         ).order_by(Attendance.date.desc(), AttendanceLog.sign_in_time.desc()).limit(60).all()
 
         user = db.session.get(User, user_id)
+        day_map = {}
+        for log in logs:
+            d = log.attendance.date.isoformat()
+            if d not in day_map:
+                day_map[d] = {'total_min': 0, 'sign_in_time': log.sign_in_time, 'sign_out_time': log.sign_out_time,
+                              'is_active': False, 'sessions': 0}
+            day_map[d]['total_min'] += log.duration_minutes
+            day_map[d]['sessions'] += 1
+            if log.sign_in_time < day_map[d]['sign_in_time']:
+                day_map[d]['sign_in_time'] = log.sign_in_time
+            if log.sign_out_time and (not day_map[d]['sign_out_time'] or log.sign_out_time > day_map[d]['sign_out_time']):
+                day_map[d]['sign_out_time'] = log.sign_out_time
+            if log.sign_out_time is None:
+                day_map[d]['is_active'] = True
         days = set(); total_min = 0
         daily_data = []
-        for log in logs:
-            days.add(log.attendance.date)
-            total_min += log.duration_minutes
+        for d, agg in sorted(day_map.items(), reverse=True):
+            days.add(d)
+            total_min += agg['total_min']
             daily_data.append({
-                'date': log.attendance.date.isoformat(),
-                'sign_in': (log.sign_in_time + timedelta(hours=8)).strftime('%H:%M'),
-                'sign_out': (log.sign_out_time + timedelta(hours=8)).strftime('%H:%M') if log.sign_out_time else None,
-                'minutes': log.duration_minutes,
-                'is_active': log.sign_out_time is None,
+                'date': d,
+                'sign_in': (agg['sign_in_time'] + timedelta(hours=8)).strftime('%H:%M'),
+                'sign_out': (agg['sign_out_time'] + timedelta(hours=8)).strftime('%H:%M') if agg['sign_out_time'] else None,
+                'minutes': agg['total_min'],
+                'is_active': agg['is_active'],
             })
 
         return jsonify({
