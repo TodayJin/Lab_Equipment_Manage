@@ -11,10 +11,19 @@ import sys
 import os
 import queue
 import webbrowser
+import json
+import urllib.request
+import tempfile
+import time
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 from src.settings import load as load_settings, save as save_settings, DEFAULTS as SETTING_DEFAULTS, get_default_db_path
+
+# 版本和更新配置
+CURRENT_VERSION = "v3.2"
+GITHUB_REPO = "TodayJin/Lab_Equipment_Manage"
+GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # 判断是否打包成 exe
 IS_FROZEN = getattr(sys, "frozen", False)
@@ -267,6 +276,11 @@ class ServerManager:
 
         self.btn_settings = ttk.Button(btn_frame, text="⚙ 设置", command=self._open_settings)
         self.btn_settings.pack(side="left")
+
+        ttk.Separator(btn_frame, orient="vertical").pack(side="left", fill="y", padx=12)
+
+        self.btn_update = ttk.Button(btn_frame, text="🔄 检查更新", command=self.check_update)
+        self.btn_update.pack(side="left")
 
         # ── 日志区 ──
         log_frame = ttk.LabelFrame(main, text="运行日志", padding=4)
@@ -984,6 +998,144 @@ class ServerManager:
         except Exception:
             pass
         self.root.after(10000, self._update_stats)
+
+    # ══════════════════════════════════════════════
+    # 一键更新
+    # ══════════════════════════════════════════════
+
+    def check_update(self):
+        """检查 GitHub Release 是否有新版本"""
+        self.btn_update.configure(state="disabled", text="⏳ 检查中...")
+        threading.Thread(target=self._do_check_update, daemon=True).start()
+
+    def _do_check_update(self):
+        try:
+            req = urllib.request.Request(GITHUB_API, headers={"User-Agent": "LabManager"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+        except Exception as e:
+            self.root.after(0, lambda: self._append_log(f"[更新] 检查失败: {e}\n"))
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+            return
+
+        latest_tag = data.get("tag_name", "v0.0")
+        assets = data.get("assets", [])
+        self.root.after(0, lambda: self._append_log(f"[更新] 最新版本: {latest_tag}（当前: {CURRENT_VERSION}）\n"))
+
+        if not self._is_newer(latest_tag, CURRENT_VERSION):
+            self.root.after(0, lambda: self._append_log("[更新] 已是最新版本 ✓\n"))
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 已是最新"))
+            self.root.after(3000, lambda: self.btn_update.configure(text="🔄 检查更新"))
+            return
+
+        exe_asset = None
+        for a in assets:
+            if a["name"].endswith(".exe"):
+                exe_asset = a
+                break
+
+        if not exe_asset:
+            self.root.after(0, lambda: self._append_log("[更新] 未找到 exe 文件\n"))
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+            return
+
+        dl_url = exe_asset["browser_download_url"]
+        dl_size = exe_asset["size"]
+        self.root.after(0, lambda: self._append_log(f"[更新] 发现新版本 {latest_tag}，大小 {dl_size / 1048576:.1f} MB\n"))
+
+        # 询问用户
+        result = [None]
+        self.root.after(0, lambda: result.__setitem__(0,
+            messagebox.askyesno("发现新版本",
+                f"当前版本: {CURRENT_VERSION}\n最新版本: {latest_tag}\n文件大小: {dl_size / 1048576:.1f} MB\n\n是否下载并更新？\n\n更新过程中将自动停止服务。")))
+
+        while result[0] is None:
+            time.sleep(0.1)
+
+        if not result[0]:
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+            return
+
+        # 下载
+        self.root.after(0, lambda: self._append_log(f"[更新] 正在下载 {latest_tag}...\n"))
+        self.root.after(0, lambda: self.btn_update.configure(text=f"⏳ 下载中..."))
+        self.root.after(0, lambda: self.root.update_idletasks())
+
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix=".exe", delete=False)
+            tmp_path = tmp.name
+            req2 = urllib.request.Request(dl_url, headers={"User-Agent": "LabManager"})
+            with urllib.request.urlopen(req2, timeout=300) as resp2:
+                total = 0
+                while True:
+                    chunk = resp2.read(65536)
+                    if not chunk:
+                        break
+                    tmp.write(chunk)
+                    total += len(chunk)
+                tmp.close()
+        except Exception as e:
+            self.root.after(0, lambda: self._append_log(f"[更新] 下载失败: {e}\n"))
+            self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+            try: os.unlink(tmp_path)
+            except: pass
+            return
+
+        self.root.after(0, lambda: self._append_log(f"[更新] 下载完成（{total / 1048576:.1f} MB）\n"))
+
+        # 停止服务
+        if self.running:
+            self.root.after(0, lambda: self._append_log("[更新] 正在停止服务...\n"))
+            self.root.after(0, self.stop_server)
+            time.sleep(2)
+
+        # 替换 exe
+        current_exe = sys.executable if IS_FROZEN else None
+        target_name = f"LabManager-{latest_tag}.exe"
+
+        if IS_FROZEN:
+            exe_dir = os.path.dirname(current_exe)
+            new_path = os.path.join(exe_dir, target_name)
+            old_backup = os.path.join(exe_dir, target_name + ".old")
+
+            def _replace():
+                try:
+                    # 备份旧版
+                    if os.path.exists(new_path):
+                        os.replace(new_path, old_backup)
+                    # 移动新文件
+                    os.replace(tmp_path, new_path)
+                    self._append_log(f"[更新] 已安装至 {new_path}\n")
+                    self._append_log(f"[更新] 更新完成，请重新启动程序。\n")
+                    messagebox.showinfo("更新完成",
+                        f"新版本已安装到:\n{new_path}\n\n请重新启动程序以生效。\n\n旧版本已备份为 {target_name}.old")
+                except Exception as e:
+                    self._append_log(f"[更新] 文件替换失败: {e}\n")
+
+            self.root.after(0, _replace)
+        else:
+            # 源码模式：保存到 dist 目录
+            dist_dir = BASE_DIR / "dist"
+            os.makedirs(dist_dir, exist_ok=True)
+            new_path = os.path.join(dist_dir, target_name)
+            try:
+                os.replace(tmp_path, new_path)
+                self.root.after(0, lambda: self._append_log(f"[更新] 已保存至 {new_path}\n[更新] 更新完成 ✓\n"))
+                self.root.after(0, lambda: messagebox.showinfo("更新完成", f"新版本已保存到:\n{new_path}"))
+            except Exception as e:
+                self.root.after(0, lambda: self._append_log(f"[更新] 保存失败: {e}\n"))
+
+        self.root.after(0, lambda: self.btn_update.configure(state="normal", text="🔄 检查更新"))
+
+    @staticmethod
+    def _is_newer(new_tag, cur_tag):
+        """比较 v3.2 格式的版本号"""
+        def parse(v):
+            try:
+                return tuple(int(x) for x in v.lstrip("vV").split("."))
+            except Exception:
+                return (0,)
+        return parse(new_tag) > parse(cur_tag)
 
 
 if __name__ == "__main__":
