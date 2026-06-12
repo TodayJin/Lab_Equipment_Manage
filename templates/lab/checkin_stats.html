@@ -132,10 +132,20 @@ let currentMemberId = null;
 function fmtTime(mins) {
   if (mins == null || isNaN(mins) || mins <= 0) return '—';
   if (mins < 60) return mins + ' 分钟';
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (m === 0) return h + ' 小时';
-  return h + ' 小时 ' + m + ' 分钟';
+  if (mins < 1440) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (m === 0) return h + ' 小时';
+    return h + ' 小时 ' + m + ' 分钟';
+  }
+  const d = Math.floor(mins / 1440);
+  const remain = mins % 1440;
+  const h = Math.floor(remain / 60);
+  const m = remain % 60;
+  if (h === 0 && m === 0) return d + ' 天';
+  if (m === 0) return d + ' 天 ' + h + ' 小时';
+  if (h === 0) return d + ' 天 ' + m + ' 分钟';
+  return d + ' 天 ' + h + ' 小时 ' + m + ' 分钟';
 }
 
 // Pre-loaded data from server (no AJAX needed)
