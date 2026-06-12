@@ -1060,30 +1060,32 @@ a:not(.btn):not(.nav-item):not(.page-link):not(.dropdown-item) {
 .time-custom input {
 
 /* ═══════════════ RANKING LIST ═══════════════ */
-.rank-list { list-style: none; padding: 0; margin: 0; }
-.rank-item {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  border-radius: var(--radius-sm); transition: all var(--transition);
-  cursor: pointer; border: 1px solid transparent;
+/* ═══════════════ RANKING CARDS ═══════════════ */
+.ranking-card {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border-radius: var(--radius); transition: all var(--transition);
+  cursor: pointer; border: 1px solid var(--gray-200); margin-bottom: 8px;
+  background: #fff;
 }
-.rank-item:hover { background: #f8fafc; border-color: var(--gray-200); transform: translateX(4px); }
-.rank-badge {
-  width: 28px; height: 28px; border-radius: 50%; display: flex;
-  align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
-  flex-shrink: 0;
+.ranking-card:hover { border-color: var(--primary); transform: translateX(4px); box-shadow: var(--shadow-md); }
+.ranking-card.top-1 { border-color: #fbbf24; background: linear-gradient(135deg, #fffbeb, #fff); }
+.ranking-card.top-2 { border-color: #94a3b8; background: linear-gradient(135deg, #f8fafc, #fff); }
+.ranking-card.top-3 { border-color: #d97706; background: linear-gradient(135deg, #fff7ed, #fff); }
+.ranking-rank { width: 40px; text-align: center; flex-shrink: 0; }
+.ranking-medal { font-size: 28px; line-height: 1; }
+.ranking-num { font-size: 18px; font-weight: 700; color: var(--gray-600); }
+.ranking-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+  background: var(--primary);
 }
-.rank-1 { background: #fef3c7; color: #d97706; animation: rankGlow 2s ease-in-out infinite; }
-.rank-2 { background: #e2e8f0; color: #475569; }
-.rank-3 { background: #fed7aa; color: #c2410c; }
-.rank-other { background: #f1f5f9; color: #64748b; }
-@keyframes rankGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
-  50%      { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
-}
-.rank-info { flex: 1; min-width: 0; }
-.rank-name { font-weight: 600; font-size: 14px; }
-.rank-detail { font-size: 12px; color: var(--gray-600); }
-.rank-time { font-weight: 700; font-size: 14px; color: var(--primary); white-space: nowrap; }
+.ranking-body { flex: 1; min-width: 0; }
+.ranking-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.ranking-stats { display: flex; gap: 12px; font-size: 12px; color: var(--gray-600); margin-bottom: 6px; }
+.ranking-bar-wrap { height: 6px; border-radius: 3px; background: var(--gray-200); overflow: hidden; }
+.ranking-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.ranking-total { font-weight: 700; font-size: 15px; color: var(--primary); white-space: nowrap; flex-shrink: 0; }
 
 /* ═══════════════ MODAL ═══════════════ */
 .modal-overlay {

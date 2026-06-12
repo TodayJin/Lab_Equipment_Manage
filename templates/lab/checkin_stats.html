@@ -66,9 +66,14 @@
 
 <!-- ═══ 排名面板 ═══ -->
 <div class="tab-panel" id="panel-ranking" style="display:none">
-  <h6 class="fw-bold mb-3">在线时长排名 <span class="badge bg-secondary ms-1" id="rankingPeriodLabel">近一月</span></h6>
-  <div class="rank-list mb-3" id="rankingList"></div>
-  <p class="text-muted small"><i class="bi bi-info-circle"></i> 排名基于选中时间段内的累计在线时长 · 点击成员可查看每日明细</p>
+  <div class="dash-panel">
+    <div class="panel-head">
+      <i class="bi bi-trophy"></i><span>在线时长排名</span>
+      <span class="badge bg-secondary ms-2" id="rankingPeriodLabel">近一月</span>
+      <small class="text-muted ms-2">点击成员查看每日明细</small>
+    </div>
+    <div id="rankingList"></div>
+  </div>
 </div>
 
 <!-- ═══ 每日明细面板 ═══ -->
@@ -219,14 +224,32 @@ function renderRanking() {
     list.innerHTML = '<div class="empty-state py-4"><p>该时间段暂无数据</p></div>';
     return;
   }
-  const rc = (r) => r === 1 ? 'rank-1' : r === 2 ? 'rank-2' : r === 3 ? 'rank-3' : 'rank-other';
+  const maxMin = RANKING_DATA[0].total_minutes || 1;
+  const medals = ['🥇', '🥈', '🥉'];
+  const colors = ['#fbbf24', '#94a3b8', '#d97706'];
+  const bgColors = ['linear-gradient(135deg, #fef3c7, #fff9e6)', 'linear-gradient(135deg, #f1f5f9, #f8fafc)', 'linear-gradient(135deg, #fff7ed, #fef2f2)'];
+
   list.innerHTML = RANKING_DATA.map((m, i) => {
-    const r = i + 1;
     const name = (m.username || '').replace(/'/g, "\\'");
-    return `<div class="rank-item" onclick="openMemberDetail('${name}', ${m.user_id})">
-      <span class="rank-badge ${rc(r)}">${r}</span>
-      <div class="rank-info"><div class="rank-name">${m.username}</div><div class="rank-detail">到勤 ${m.days} 天 · 平均 ${fmtTime(m.avg_minutes)}</div></div>
-      <span class="rank-time">${fmtTime(m.total_minutes)}</span>
+    const pct = Math.round(m.total_minutes / maxMin * 100);
+    const isTop3 = i < 3;
+    return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" onclick="openMemberDetail('${name}', ${m.user_id})">
+      <div class="ranking-rank">
+        ${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}
+      </div>
+      <div class="ranking-avatar">${name.charAt(0)}</div>
+      <div class="ranking-body">
+        <div class="ranking-name">${m.username}</div>
+        <div class="ranking-stats">
+          <span><i class="bi bi-calendar-check"></i> ${m.days} 天</span>
+          <span><i class="bi bi-person-check"></i> ${m.sessions} 次</span>
+          <span><i class="bi bi-clock"></i> 日均 ${fmtTime(m.avg_minutes)}</span>
+        </div>
+        <div class="ranking-bar-wrap">
+          <div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? colors[i] : 'var(--primary)'}"></div>
+        </div>
+      </div>
+      <div class="ranking-total">${fmtTime(m.total_minutes)}</div>
     </div>`;
   }).join('');
   document.getElementById('rankingPeriodLabel').textContent =
