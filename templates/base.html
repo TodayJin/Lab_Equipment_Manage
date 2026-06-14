@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}电子技术创新实验室 - 器材管理系统{% endblock %}</title>
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.2.1" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.2.1" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}?v=3.2.1" id="dark-css"
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.2.2" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.2.2" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3.2.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}?v=3.2.2" id="dark-css"
           {% if not (current_user.is_authenticated and current_user.dark_mode_enabled) %}disabled{% endif %}>
     {% block extra_head %}{% endblock %}
 </head>
@@ -140,7 +140,7 @@
     </div>
     {% endif %}
 
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}?v=3.2.1"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}?v=3.2.2"></script>
     <script>
     // 心跳：每45秒告诉服务器我在线
     {% if current_user.is_authenticated %}
@@ -150,7 +150,7 @@
     fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
     {% endif %}
     </script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=3.2.1"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=3.2.2"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

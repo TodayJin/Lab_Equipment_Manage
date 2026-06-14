@@ -83,9 +83,9 @@ const LabToast = {
 
 // ═══════════════ 全局续签检测（所有标签页生效） ═══════════════
 (function() {
-    const RENEW_HOURS = [3, 6, 9];
-    const HARD_LIMIT_H = 12;
-    const RENEW_GRACE_MIN = 5;
+    const RENEW_HOURS = [1/12];  // 5分钟后触发续签
+    const HARD_LIMIT_H = 4/12;  // 20分钟硬限制
+    const RENEW_GRACE_MIN = 5;  // 5分钟倒计时
     const STORAGE_KEY = 'lab_signin_ts';
     const WARNED_KEY = 'lab_renew_warned';
 
@@ -125,7 +125,7 @@ const LabToast = {
         stopAlertSound();
         playBeep();
         alertSoundTimer = setInterval(playBeep, 2000);
-        setTimeout(function() { stopAlertSound(); }, 30000);
+        setTimeout(function() { stopAlertSound(); }, 15000);
     }
 
     function stopAlertSound() {
@@ -161,12 +161,23 @@ const LabToast = {
         const overlay = document.createElement('div');
         overlay.className = 'afk-warning-overlay';
         overlay.id = 'renewModal';
+        // 内嵌样式保证弹窗在任何页面都可见（不依赖外部 CSS）
+        overlay.setAttribute('style',
+            'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);' +
+            'z-index:99999;display:flex;align-items:center;justify-content:center;' +
+            'padding:20px;animation:fadeIn 0.2s ease-out;backdrop-filter:blur(4px)'
+        );
         overlay.innerHTML = `
-            <div class="afk-warning-card">
-                <i class="bi bi-clock-history" style="font-size:48px;color:var(--warning);display:block;margin-bottom:12px"></i>
-                <h5 class="fw-bold mb-2">续签确认 — 已在线 ${label}</h5>
+            <div style="
+                background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.25);
+                padding:32px;text-align:center;max-width:380px;width:100%;
+                animation:scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;">
+                <i class="bi bi-clock-history" style="font-size:48px;color:#f59e0b;display:block;margin-bottom:12px"></i>
+                <h5 class="fw-bold mb-2" style="color:#1e2130">续签确认 — 已在线 ${label}</h5>
                 <p class="text-muted small mb-3">请确认你仍在实验室，${RENEW_GRACE_MIN} 分钟内不响应将自动签退。</p>
-                <div class="afk-countdown mb-3" id="renewCountdown">${RENEW_GRACE_MIN}:00</div>
+                <div id="renewCountdown" style="font-size:48px;font-weight:700;color:#ef4444;
+                    font-variant-numeric:tabular-nums;animation:pulse 1s ease-in-out infinite;
+                    margin-bottom:16px">${RENEW_GRACE_MIN}:00</div>
                 <div class="d-flex gap-2 justify-content-center">
                     <button class="btn btn-primary" onclick="LabRenew.confirm()"><i class="bi bi-hand-thumbs-up"></i> 我在实验室</button>
                     <button class="btn btn-outline-danger" onclick="LabRenew.signout()"><i class="bi bi-box-arrow-right"></i> 签退</button>
