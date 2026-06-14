@@ -125,7 +125,7 @@ def checkin_status():
     renew_at = [3*60, 6*60, 9*60]
     need_renew = None
     for n in renew_at:
-        if duration_minutes >= n and duration_minutes < n + 1:  # 1分钟窗口（测试用）
+        if duration_minutes >= n and duration_minutes < n + 5:  # 5分钟窗口
             need_renew = n // 60
             break
 

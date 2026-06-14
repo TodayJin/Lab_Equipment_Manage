@@ -83,9 +83,9 @@ const LabToast = {
 
 // ═══════════════ 全局续签检测（所有标签页生效） ═══════════════
 (function() {
-    const RENEW_HOURS = [1/12];  // 5分钟后触发续签
-    const HARD_LIMIT_H = 4/12;  // 20分钟硬限制
-    const RENEW_GRACE_MIN = 5;  // 5分钟倒计时
+    const RENEW_HOURS = [3, 6, 9];  // 3h/6h/9h 触发续签
+    const HARD_LIMIT_H = 12;  // 12h 硬性签退
+    const RENEW_GRACE_MIN = 5;  // 5分钟响应倒计时
     const STORAGE_KEY = 'lab_signin_ts';
     const WARNED_KEY = 'lab_renew_warned';
 
