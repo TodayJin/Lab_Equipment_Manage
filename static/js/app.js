@@ -87,9 +87,9 @@ const LabToast = {
     const HARD_LIMIT_H = 12;
     const RENEW_GRACE_MIN = 5;
     const STORAGE_KEY = 'lab_signin_ts';
+    const WARNED_KEY = 'lab_renew_warned';
 
     let renewCountdownSec = 0;
-    let lastWarnedKey = '';  // localStorage key for which checkpoint was warned
 
     function getSignInTs() {
         const v = localStorage.getItem(STORAGE_KEY);
@@ -108,9 +108,14 @@ const LabToast = {
         fetch('/lab/checkin/auto-signout', { method: 'POST' })
         .then(r => r.json()).then(data => {
             localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem('lab_renew_warned');
-            // Force fresh load without cache
+            localStorage.removeItem(WARNED_KEY);
             window.location.href = window.location.href.split('?')[0] + '?_=' + Date.now();
+        })
+        .catch(function() {
+            // 网络失败时强制刷新页面，让服务端 _auto_signout_expired 处理
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(WARNED_KEY);
+            window.location.reload();
         });
     }
 
@@ -119,7 +124,6 @@ const LabToast = {
     function startAlertSound() {
         stopAlertSound();
         playBeep();
-        // Repeat every 2 seconds for 30 seconds
         alertSoundTimer = setInterval(playBeep, 2000);
         setTimeout(function() { stopAlertSound(); }, 30000);
     }
@@ -150,13 +154,10 @@ const LabToast = {
         renewCountdownSec = RENEW_GRACE_MIN * 60;
         const label = hour >= 1 ? hour + ' 小时' : Math.round(hour * 60) + ' 分钟';
 
-        // Beep every 2s for 30s until user responds
         startAlertSound();
 
-        // Browser notification (works on localhost/https)
         LabToast.notifyBrowser('续签确认 — 已在线 ' + label, RENEW_GRACE_MIN + ' 分钟内不响应将自动签退。');
 
-        // In-page modal
         const overlay = document.createElement('div');
         overlay.className = 'afk-warning-overlay';
         overlay.id = 'renewModal';
@@ -181,17 +182,8 @@ const LabToast = {
         renewCountdownSec = 0;
     }
 
-    function isWarned(hour) {
-        const data = JSON.parse(localStorage.getItem('lab_renew_warned') || '{}');
-        return !!data['h' + hour];
-    }
-
-    function markWarned(hour) {
-        const data = JSON.parse(localStorage.getItem('lab_renew_warned') || '{}');
-        data['h' + hour] = true;
-        localStorage.setItem('lab_renew_warned', JSON.stringify(data));
-        lastWarnedKey = 'h' + hour;
-    }
+    // 当前会话已检查过的续签点（不存 localStorage，刷新页面后重置）
+    const warnedInSession = {};
 
     function tick() {
         const ts = getSignInTs();
@@ -209,7 +201,7 @@ const LabToast = {
         // 12h hard limit
         if (elapsedMin >= HARD_LIMIT_H * 60) { doAutoSignout(); return; }
 
-        // Renewal modal countdown
+        // 已有续签弹窗 —— 倒计时
         if (renewCountdownSec > 0) {
             renewCountdownSec--;
             const el = document.getElementById('renewCountdown');
@@ -218,9 +210,46 @@ const LabToast = {
                 el.textContent = m + ':' + s.toString().padStart(2, '0');
             }
             if (renewCountdownSec <= 0) { removeRenewModal(); doAutoSignout(); }
+            return;  // 已有弹窗时不再检查续签点
         }
 
-        // Next-check countdown
+        // 检查所有续签点，找到需要提醒的
+        for (let h of RENEW_HOURS) {
+            // 当前已过 h 小时，且本会话还没提醒过
+            if (elapsedMin >= h * 60 && !warnedInSession['h' + h]) {
+                warnedInSession['h' + h] = true;
+                // 记录到 localStorage 用于跨标签页同步
+                try {
+                    const data = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
+                    data['h' + h] = true;
+                    localStorage.setItem(WARNED_KEY, JSON.stringify(data));
+                } catch(e) {}
+                showRenewModal(h);
+                return;  // 一次只弹一个窗
+            }
+        }
+
+        // 如果已过续签点但没弹窗（比如用户刷新了页面，且已过了提醒窗口）
+        // 获取最近的未完成续签点，如果倒计时还没结束就重新弹窗
+        for (let h of [...RENEW_HOURS].reverse()) {
+            if (elapsedMin >= h * 60 && elapsedMin < h * 60 + RENEW_GRACE_MIN) {
+                if (!warnedInSession['grace_' + h]) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
+                        if (!data['h' + h]) {
+                            // 服务器端已自动签退或用户之前已响应过
+                            continue;
+                        }
+                    } catch(e) {}
+                    // 重新弹窗——用户应该还在续签倒计时内
+                    warnedInSession['grace_' + h] = true;
+                    showRenewModal(h);
+                    return;
+                }
+            }
+        }
+
+        // Next-check countdown display
         if (afkEl && renewCountdownSec === 0) {
             let nextCheck = HARD_LIMIT_H * 60;
             for (let c of RENEW_HOURS) { if (elapsedMin < c * 60) { nextCheck = c * 60; break; } }
@@ -228,30 +257,22 @@ const LabToast = {
             afkEl.textContent = fmtDur(remain);
             afkEl.style.color = remain <= 30 ? '#ef4444' : '#f59e0b';
         }
-
-        // Check for renewal at checkpoints
-        if (renewCountdownSec === 0) {
-            for (let h of RENEW_HOURS) {
-                if (elapsedMin >= h * 60 && elapsedMin < h * 60 + 2 && !isWarned(h)) {
-                    markWarned(h);
-                    showRenewModal(h);
-                    break;
-                }
-            }
-        }
     }
 
-    // Listen for cross-tab changes (other tab confirmed or signed out)
+    // Listen for cross-tab changes
     window.addEventListener('storage', function(e) {
         if (e.key === STORAGE_KEY && e.newValue === null) {
-            // Another tab signed out
             removeRenewModal();
         }
-        if (e.key === 'lab_renew_warned') {
-            // Another tab's warn state changed — sync locally
-            // (no action needed, isWarned() reads from localStorage)
-        }
     });
+
+    // 页面打开时，同步其他标签页的提醒状态
+    try {
+        const warnedData = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
+        for (let k of Object.keys(warnedData)) {
+            warnedInSession[k] = warnedData[k];
+        }
+    } catch(e) {}
 
     // Expose
     window.LabRenew = {
