@@ -81,7 +81,7 @@ class Equipment(db.Model):
     name = db.Column(db.String(200), nullable=False, index=True)
     model = db.Column(db.String(200))
     packaging = db.Column(db.String(200))
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), index=True)
     stock_quantity = db.Column(db.Integer, default=0)
     alert_threshold = db.Column(db.Integer, default=0)
     unit = db.Column(db.String(50), default='个')
@@ -105,12 +105,12 @@ class StockRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     equipment_id = db.Column(db.Integer, db.ForeignKey('equipments.id'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
-    type = db.Column(db.String(10), nullable=False)  # 'in' / 'out'
+    type = db.Column(db.String(10), nullable=False, index=True)  # 'in' / 'out'
     quantity = db.Column(db.Integer, nullable=False)
     before_stock = db.Column(db.Integer, nullable=False)
     after_stock = db.Column(db.Integer, nullable=False)
     remark = db.Column(db.Text)
-    undone = db.Column(db.Boolean, default=False)  # 是否已撤销
+    undone = db.Column(db.Boolean, default=False, index=True)  # 是否已撤销
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     @property
@@ -124,13 +124,14 @@ class StockRecord(db.Model):
 class OperationLog(db.Model):
     """增强操作日志：记录所有管理操作"""
     __tablename__ = 'operation_logs'
+    __table_args__ = (db.Index('ix_operation_logs_target', 'target_type', 'target_id'),)
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     action = db.Column(db.String(50), nullable=False)      # create_equipment, edit_equipment, delete_equipment,
-                                                            # create_category, edit_category, delete_category,
-                                                            # create_user, delete_user, change_role,
-                                                            # change_password, undo_stock
+                                                             # create_category, edit_category, delete_category,
+                                                             # create_user, delete_user, change_role,
+                                                             # change_password, undo_stock
     target_type = db.Column(db.String(50))                  # equipment, category, user, stock_record
     target_id = db.Column(db.Integer)
     target_name = db.Column(db.String(200))                 # 人类可读的目标名
@@ -172,6 +173,7 @@ class DutyDay(db.Model):
 class Attendance(db.Model):
     """实验室成员每日签到"""
     __tablename__ = 'attendances'
+    __table_args__ = (db.Index('ix_attendances_user_date', 'user_id', 'date'),)
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
@@ -205,6 +207,7 @@ class AttendanceLog(db.Model):
     attendance_id = db.Column(db.Integer, db.ForeignKey('attendances.id'), nullable=False, index=True)
     sign_in_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     sign_out_time = db.Column(db.DateTime)
+    renew_deadline = db.Column(db.DateTime)  # 续签截止时间，超时自动签退
 
     @property
     def duration_minutes(self):
@@ -216,6 +219,7 @@ class AttendanceLog(db.Model):
 class ChatMessage(db.Model):
     """群聊消息"""
     __tablename__ = 'chat_messages'
+    __table_args__ = (db.Index('ix_chat_messages_id_user', 'id', 'user_id'),)
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)

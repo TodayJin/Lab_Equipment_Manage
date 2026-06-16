@@ -35,32 +35,28 @@ def api_overview():
 @analytics_bp.route('/api/monthly-trend')
 @login_required
 def api_monthly_trend():
-    """最近12个月出入库趋势"""
+    """最近12个月出入库趋势（2次查询替代24次）"""
+    from sqlalchemy import extract
+    start = (datetime.utcnow().replace(day=1) - timedelta(days=365)).replace(day=1)
+    rows = db.session.query(
+        func.strftime('%Y-%m', StockRecord.created_at).label('ym'),
+        StockRecord.type,
+        func.sum(StockRecord.quantity).label('qty')
+    ).filter(
+        StockRecord.undone == False,
+        StockRecord.created_at >= start
+    ).group_by('ym', StockRecord.type).all()
+
+    in_map, out_map = {}, {}
+    for r in rows:
+        (in_map if r.type == 'in' else out_map)[r.ym] = r.qty
+
     data = {'labels': [], 'in_data': [], 'out_data': []}
     for i in range(11, -1, -1):
-        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        for _ in range(i):
-            # go back i months
-            month_start = (month_start.replace(day=1) - timedelta(days=1)).replace(day=1)
-        month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(seconds=1)
-
-        label = month_start.strftime('%Y-%m')
-        in_qty = db.session.query(func.sum(StockRecord.quantity)).filter(
-            StockRecord.type == 'in',
-            StockRecord.undone == False,
-            StockRecord.created_at >= month_start,
-            StockRecord.created_at <= month_end
-        ).scalar() or 0
-        out_qty = db.session.query(func.sum(StockRecord.quantity)).filter(
-            StockRecord.type == 'out',
-            StockRecord.undone == False,
-            StockRecord.created_at >= month_start,
-            StockRecord.created_at <= month_end
-        ).scalar() or 0
-
-        data['labels'].append(label)
-        data['in_data'].append(in_qty)
-        data['out_data'].append(out_qty)
+        m = (datetime.utcnow().replace(day=1) - timedelta(days=30 * i)).strftime('%Y-%m')
+        data['labels'].append(m)
+        data['in_data'].append(in_map.get(m, 0))
+        data['out_data'].append(out_map.get(m, 0))
     return jsonify(data)
 
 

@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, render_template, request, Response, redirect, url_for, flash
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload
 from src.models import db, StockRecord, Equipment, User, Category
 from src.helpers import admin_required, log_operation
 
@@ -45,7 +46,10 @@ def _build_query():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    query = StockRecord.query
+    query = StockRecord.query.options(
+        joinedload(StockRecord.equipment),
+        joinedload(StockRecord.user)
+    )
 
     if user_id:
         query = query.filter(StockRecord.user_id == user_id)

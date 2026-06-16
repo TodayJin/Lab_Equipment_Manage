@@ -2,7 +2,7 @@
 import os, io, zipfile
 from datetime import datetime, date, timedelta
 from collections import defaultdict
-from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, jsonify
 from flask_login import login_required, current_user
 from src.models import db, Notice, DutyDay, Attendance, AttendanceLog, User
 from src.helpers import admin_required
@@ -81,7 +81,8 @@ AUTO_SIGNOUT_AFK_MINUTES = 60  # 无操作自动签退提醒
 
 def _auto_signout_expired():
     """自动签退超过12小时的活跃签到，返回签退人数"""
-    cutoff = datetime.utcnow() - timedelta(hours=MAX_SIGNIN_HOURS)
+    now = datetime.utcnow()
+    cutoff = now - timedelta(hours=MAX_SIGNIN_HOURS)
     expired_logs = AttendanceLog.query.filter(
         AttendanceLog.sign_out_time == None,
         AttendanceLog.sign_in_time < cutoff
@@ -95,11 +96,27 @@ def _auto_signout_expired():
     return count
 
 
+def _auto_signout_renewal_expired():
+    """后台检查：自动签退超过续签截止时间的活跃签到"""
+    now = datetime.utcnow()
+    expired = AttendanceLog.query.filter(
+        AttendanceLog.sign_out_time == None,
+        AttendanceLog.renew_deadline != None,
+        AttendanceLog.renew_deadline < now
+    ).all()
+    for log in expired:
+        log.sign_out_time = now
+    if expired:
+        db.session.commit()
+    return len(expired)
+
+
 @lab_bp.route('/checkin')
 @login_required
 def checkin():
     today = date.today()
-    _auto_signout_expired()  # Auto-signout any expired sessions
+    _auto_signout_expired()   # Auto-signout any expired sessions
+    _auto_signout_renewal_expired()  # Auto-signout any renewal-expired sessions
     today_records = Attendance.query.filter_by(date=today).order_by(Attendance.created_at.desc()).all()
     all_users = User.query.order_by(User.username).all()
     return render_template('lab/checkin.html', today=today, today_records=today_records, users=all_users)
@@ -121,20 +138,50 @@ def checkin_status():
     now = datetime.utcnow()
     duration_minutes = round((now - log.sign_in_time).total_seconds() / 60)
     hours_remaining = max(0, MAX_SIGNIN_HOURS * 60 - duration_minutes)
-    # 3h/6h/9h 需要续签确认，12h 硬性签退
     renew_at = [3*60, 6*60, 9*60]
     need_renew = None
     for n in renew_at:
-        if duration_minutes >= n and duration_minutes < n + 5:  # 5分钟窗口
+        if duration_minutes >= n and duration_minutes < n + 5:
             need_renew = n // 60
             break
+
+    deadline = log.renew_deadline
+    remaining_sec = max(0, round((deadline - now).total_seconds())) if deadline else 0
 
     return jsonify({
         'checked_in': True,
         'sign_in_time': (log.sign_in_time + timedelta(hours=8)).strftime('%H:%M'),
         'duration_minutes': duration_minutes,
         'hours_remaining': hours_remaining,
-        'need_renew': need_renew,  # 3/6/9 需要续签确认
+        'need_renew': need_renew,
+        'renew_deadline': deadline.isoformat() if deadline else None,
+        'renew_remaining_sec': remaining_sec,
+    })
+
+
+@lab_bp.route('/checkin/renew', methods=['POST'])
+@login_required
+def do_renew():
+    """续签：延长签到截止时间"""
+    today = date.today()
+    rec = Attendance.query.filter_by(user_id=current_user.id, date=today).first()
+    if not rec or not rec.is_checked_in:
+        return jsonify({'ok': False, 'message': 'not checked in'})
+
+    log = rec.logs.filter(AttendanceLog.sign_out_time == None).order_by(AttendanceLog.sign_in_time.desc()).first()
+    if not log:
+        return jsonify({'ok': False, 'message': 'no active log'})
+
+    now = datetime.utcnow()
+    max_deadline = log.sign_in_time + timedelta(hours=MAX_SIGNIN_HOURS)
+    new_deadline = now + timedelta(hours=3, minutes=5)
+    log.renew_deadline = min(new_deadline, max_deadline)
+    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'renew_deadline': log.renew_deadline.isoformat(),
+        'renew_remaining_sec': max(0, round((log.renew_deadline - now).total_seconds())),
     })
 
 
@@ -153,7 +200,12 @@ def do_signin():
     if record.is_checked_in:
         flash(f'请先签退再签到。', 'warning')
     else:
-        db.session.add(AttendanceLog(attendance_id=record.id, sign_in_time=datetime.utcnow()))
+        now = datetime.utcnow()
+        db.session.add(AttendanceLog(
+            attendance_id=record.id,
+            sign_in_time=now,
+            renew_deadline=now + timedelta(hours=3, minutes=5)
+        ))
         db.session.commit()
         user = db.session.get(User, uid)
         flash(f'{user.username} 签到成功！', 'success')

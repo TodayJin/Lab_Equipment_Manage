@@ -81,227 +81,230 @@ const LabToast = {
     }
 };
 
-// ═══════════════ 全局续签检测（所有标签页生效） ═══════════════
+// ═══════════════ 续签检测（全局，所有标签页生效） ═══════════════
+//   用 localStorage 作唯一状态源，每次 tick() 重新读取，
+//   不依赖内存变量，彻底解决跨标签页/页面切换重复弹窗问题
 (function() {
-    const RENEW_HOURS = [3, 6, 9];  // 3h/6h/9h 触发续签
-    const HARD_LIMIT_H = 12;  // 12h 硬性签退
-    const RENEW_GRACE_MIN = 5;  // 5分钟响应倒计时
-    const STORAGE_KEY = 'lab_signin_ts';
-    const WARNED_KEY = 'lab_renew_warned';
+    var RENEW_POINTS = [3, 6, 9];        // 3h / 6h / 9h 触发续签
+    var HARD_LIMIT_MIN = 12 * 60;        // 12h 硬性签退
+    var GRACE_SEC = 5 * 60;              // 5 分钟响应倒计时
+    var STORAGE_TS = 'lab_signin_ts';
+    var STORAGE_ACK = 'lab_renew_ack';
 
-    let renewCountdownSec = 0;
+    var countdownSec = 0;
+    var activeRenewIdx = -1;  // 当前弹窗对应 RENEW_POINTS 的索引
+    var beepTimer = null;
 
-    function getSignInTs() {
-        const v = localStorage.getItem(STORAGE_KEY);
-        return v ? parseInt(v) : null;
+    function readAck() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_ACK)) || {}; } catch(e) { return {}; }
     }
 
-    function fmtDur(totalMin) {
-        const h = Math.floor(totalMin / 60);
-        const m = totalMin % 60;
-        return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
+    function writeAck(obj) {
+        localStorage.setItem(STORAGE_ACK, JSON.stringify(obj));
     }
 
-    function doAutoSignout() {
-        stopAlertSound();
-        removeRenewModal();
+    function ackKey(h) { return 'h' + h; }
+
+    function getSigninTs() {
+        var v = localStorage.getItem(STORAGE_TS);
+        return v ? parseInt(v, 10) : null;
+    }
+
+    function fmtDur(m) {
+        var h = Math.floor(m / 60), r = m % 60;
+        return h > 0 ? h + 'h ' + r + 'm' : r + 'm';
+    }
+
+    function beep() {
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [0, 0.25, 0.5].forEach(function(d) {
+                var o = ctx.createOscillator(), g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.type = 'square'; o.frequency.value = 800; g.gain.value = 0.15;
+                o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.1);
+            });
+        } catch(e) {}
+    }
+
+    function startBeep() {
+        stopBeep();
+        beep();
+        beepTimer = setInterval(beep, 2000);
+        setTimeout(stopBeep, 15000);
+    }
+
+    function stopBeep() {
+        if (beepTimer) { clearInterval(beepTimer); beepTimer = null; }
+    }
+
+    function removeModal() {
+        stopBeep();
+        var el = document.getElementById('renewModal');
+        if (el) el.remove();
+        countdownSec = 0;
+        activeRenewIdx = -1;
+    }
+
+    function showModal(hour) {
+        removeModal();
+        countdownSec = GRACE_SEC;
+        var label = hour >= 1 ? hour + ' 小时' : Math.round(hour * 60) + ' 分钟';
+        startBeep();
+
+        LabToast.notifyBrowser('续签确认 — 已在线 ' + label, Math.round(GRACE_SEC / 60) + ' 分钟内不响应将自动签退。');
+
+        var div = document.createElement('div');
+        div.id = 'renewModal';
+        div.dataset.hour = hour;
+        div.setAttribute('style',
+            'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);' +
+            'z-index:99999;display:flex;align-items:center;justify-content:center;' +
+            'padding:20px;'
+        );
+        div.innerHTML =
+            '<div style="background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.25);' +
+            'padding:32px;text-align:center;max-width:380px;width:100%">' +
+            '<i class="bi bi-clock-history" style="font-size:48px;color:#f59e0b;display:block;margin-bottom:12px"></i>' +
+            '<h5 class="fw-bold mb-2" style="color:#1e2130">续签确认 — 已在线 ' + label + '</h5>' +
+            '<p class="text-muted small mb-3">请确认你仍在实验室，' + Math.round(GRACE_SEC / 60) + ' 分钟内不响应将自动签退。</p>' +
+            '<div id="renewCD" style="font-size:48px;font-weight:700;color:#ef4444;' +
+            'font-variant-numeric:tabular-nums;margin-bottom:16px">' + Math.floor(countdownSec / 60) + ':' +
+            (countdownSec % 60).toString().padStart(2, '0') + '</div>' +
+            '<div class="d-flex gap-2 justify-content-center">' +
+            '<button class="btn btn-primary" onclick="LabRenew.confirm()"><i class="bi bi-hand-thumbs-up"></i> 我在实验室</button>' +
+            '<button class="btn btn-outline-danger" onclick="LabRenew.signout()"><i class="bi bi-box-arrow-right"></i> 签退</button></div></div>';
+        document.body.appendChild(div);
+    }
+
+    function autoSignout() {
+        stopBeep();
+        removeModal();
         fetch('/lab/checkin/auto-signout', { method: 'POST' })
-        .then(r => r.json()).then(data => {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(WARNED_KEY);
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            localStorage.removeItem(STORAGE_TS);
+            localStorage.removeItem(STORAGE_ACK);
             window.location.href = window.location.href.split('?')[0] + '?_=' + Date.now();
         })
         .catch(function() {
-            // 网络失败时强制刷新页面，让服务端 _auto_signout_expired 处理
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(WARNED_KEY);
+            localStorage.removeItem(STORAGE_TS);
+            localStorage.removeItem(STORAGE_ACK);
             window.location.reload();
         });
     }
 
-    let alertSoundTimer = null;
-
-    function startAlertSound() {
-        stopAlertSound();
-        playBeep();
-        alertSoundTimer = setInterval(playBeep, 2000);
-        setTimeout(function() { stopAlertSound(); }, 15000);
-    }
-
-    function stopAlertSound() {
-        if (alertSoundTimer) { clearInterval(alertSoundTimer); alertSoundTimer = null; }
-    }
-
-    function playBeep() {
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            [0, 0.25, 0.5].forEach(function(delay) {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'square';
-                osc.frequency.value = 800;
-                gain.gain.value = 0.15;
-                osc.start(ctx.currentTime + delay);
-                osc.stop(ctx.currentTime + delay + 0.1);
-            });
-        } catch(e) { /* ignore */ }
-    }
-
-    function showRenewModal(hour) {
-        removeRenewModal();
-        renewCountdownSec = RENEW_GRACE_MIN * 60;
-        const label = hour >= 1 ? hour + ' 小时' : Math.round(hour * 60) + ' 分钟';
-
-        startAlertSound();
-
-        LabToast.notifyBrowser('续签确认 — 已在线 ' + label, RENEW_GRACE_MIN + ' 分钟内不响应将自动签退。');
-
-        const overlay = document.createElement('div');
-        overlay.className = 'afk-warning-overlay';
-        overlay.id = 'renewModal';
-        // 内嵌样式保证弹窗在任何页面都可见（不依赖外部 CSS）
-        overlay.setAttribute('style',
-            'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);' +
-            'z-index:99999;display:flex;align-items:center;justify-content:center;' +
-            'padding:20px;animation:fadeIn 0.2s ease-out;backdrop-filter:blur(4px)'
-        );
-        overlay.innerHTML = `
-            <div style="
-                background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.25);
-                padding:32px;text-align:center;max-width:380px;width:100%;
-                animation:scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;">
-                <i class="bi bi-clock-history" style="font-size:48px;color:#f59e0b;display:block;margin-bottom:12px"></i>
-                <h5 class="fw-bold mb-2" style="color:#1e2130">续签确认 — 已在线 ${label}</h5>
-                <p class="text-muted small mb-3">请确认你仍在实验室，${RENEW_GRACE_MIN} 分钟内不响应将自动签退。</p>
-                <div id="renewCountdown" style="font-size:48px;font-weight:700;color:#ef4444;
-                    font-variant-numeric:tabular-nums;animation:pulse 1s ease-in-out infinite;
-                    margin-bottom:16px">${RENEW_GRACE_MIN}:00</div>
-                <div class="d-flex gap-2 justify-content-center">
-                    <button class="btn btn-primary" onclick="LabRenew.confirm()"><i class="bi bi-hand-thumbs-up"></i> 我在实验室</button>
-                    <button class="btn btn-outline-danger" onclick="LabRenew.signout()"><i class="bi bi-box-arrow-right"></i> 签退</button>
-                </div>
-            </div>`;
-        document.body.appendChild(overlay);
-    }
-
-    function removeRenewModal() {
-        stopAlertSound();
-        const el = document.getElementById('renewModal');
-        if (el) el.remove();
-        renewCountdownSec = 0;
-    }
-
-    // 当前会话已检查过的续签点（不存 localStorage，刷新页面后重置）
-    const warnedInSession = {};
-
+    // ---------- 主循环 ----------
     function tick() {
-        const ts = getSignInTs();
+        var ts = getSigninTs();
         if (!ts) return;
+        var elapsedMin = Math.floor((Date.now() - ts) / 60000);
 
-        const elapsedMin = Math.floor((Date.now() - ts) / 60000);
-
-        // Update countdown display if on checkin page
-        const durEl = document.getElementById('signinDuration');
-        const afkEl = document.getElementById('afkCountdown');
-        const panel = document.getElementById('countdownPanel');
-        if (panel) panel.style.display = '';
+        // 签到页面上的持续显示更新
+        var durEl = document.getElementById('signinDuration');
+        var afkEl = document.getElementById('afkCountdown');
+        var panelEl = document.getElementById('countdownPanel');
+        if (panelEl) panelEl.style.display = '';
         if (durEl) durEl.textContent = fmtDur(elapsedMin);
 
-        // 12h hard limit
-        if (elapsedMin >= HARD_LIMIT_H * 60) { doAutoSignout(); return; }
+        // 硬限制
+        if (elapsedMin >= HARD_LIMIT_MIN) { autoSignout(); return; }
 
-        // 已有续签弹窗 —— 倒计时
-        if (renewCountdownSec > 0) {
-            renewCountdownSec--;
-            const el = document.getElementById('renewCountdown');
-            if (el) {
-                const m = Math.floor(renewCountdownSec / 60), s = renewCountdownSec % 60;
-                el.textContent = m + ':' + s.toString().padStart(2, '0');
+        // 倒计时中
+        if (countdownSec > 0) {
+            // 从 localStorage 读 ack，如果该续签点已被确认则关弹窗
+            var ack = readAck();
+            if (activeRenewIdx >= 0) {
+                var ch = RENEW_POINTS[activeRenewIdx];
+                if (ack[ackKey(ch)]) { removeModal(); return; }
             }
-            if (renewCountdownSec <= 0) { removeRenewModal(); doAutoSignout(); }
-            return;  // 已有弹窗时不再检查续签点
+            countdownSec--;
+            var cdEl = document.getElementById('renewCD');
+            if (cdEl) {
+                var m = Math.floor(countdownSec / 60), s = countdownSec % 60;
+                cdEl.textContent = m + ':' + s.toString().padStart(2, '0');
+            }
+            if (countdownSec <= 0) { removeModal(); autoSignout(); }
+            return;
         }
 
-        // 检查所有续签点，找到需要提醒的
-        for (let h of RENEW_HOURS) {
-            // 当前已过 h 小时，且本会话还没提醒过
-            if (elapsedMin >= h * 60 && !warnedInSession['h' + h]) {
-                warnedInSession['h' + h] = true;
-                // 记录到 localStorage 用于跨标签页同步
-                try {
-                    const data = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
-                    data['h' + h] = true;
-                    localStorage.setItem(WARNED_KEY, JSON.stringify(data));
-                } catch(e) {}
-                showRenewModal(h);
-                return;  // 一次只弹一个窗
-            }
-        }
-
-        // 如果已过续签点但没弹窗（比如用户刷新了页面，且已过了提醒窗口）
-        // 获取最近的未完成续签点，如果倒计时还没结束就重新弹窗
-        for (let h of [...RENEW_HOURS].reverse()) {
-            if (elapsedMin >= h * 60 && elapsedMin < h * 60 + RENEW_GRACE_MIN) {
-                if (!warnedInSession['grace_' + h]) {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
-                        if (!data['h' + h]) {
-                            // 服务器端已自动签退或用户之前已响应过
-                            continue;
-                        }
-                    } catch(e) {}
-                    // 重新弹窗——用户应该还在续签倒计时内
-                    warnedInSession['grace_' + h] = true;
-                    showRenewModal(h);
-                    return;
-                }
+        // 检查所有续签点（从 localStorage 读 ack，不依赖内存）
+        var ack = readAck();
+        for (var i = 0; i < RENEW_POINTS.length; i++) {
+            var h = RENEW_POINTS[i];
+            if (elapsedMin >= h * 60 && !ack[ackKey(h)]) {
+                showModal(h);
+                activeRenewIdx = i;   // 放在 showModal() 之后，避免 removeModal() 覆盖
+                return;
             }
         }
 
-        // Next-check countdown display
-        if (afkEl && renewCountdownSec === 0) {
-            let nextCheck = HARD_LIMIT_H * 60;
-            for (let c of RENEW_HOURS) { if (elapsedMin < c * 60) { nextCheck = c * 60; break; } }
-            const remain = Math.max(0, nextCheck - elapsedMin);
+        // 显示下一个检查点倒计时
+        if (afkEl && countdownSec === 0) {
+            var next = HARD_LIMIT_MIN;
+            for (var j = 0; j < RENEW_POINTS.length; j++) {
+                if (elapsedMin < RENEW_POINTS[j] * 60) { next = RENEW_POINTS[j] * 60; break; }
+            }
+            var remain = Math.max(0, next - elapsedMin);
             afkEl.textContent = fmtDur(remain);
             afkEl.style.color = remain <= 30 ? '#ef4444' : '#f59e0b';
         }
     }
 
-    // Listen for cross-tab changes
+    // 监听其他标签页的签到退出
     window.addEventListener('storage', function(e) {
-        if (e.key === STORAGE_KEY && e.newValue === null) {
-            removeRenewModal();
-        }
+        if (e.key === STORAGE_TS && e.newValue === null) { removeModal(); }
     });
 
-    // 页面打开时，同步其他标签页的提醒状态
-    try {
-        const warnedData = JSON.parse(localStorage.getItem(WARNED_KEY) || '{}');
-        for (let k of Object.keys(warnedData)) {
-            warnedInSession[k] = warnedData[k];
-        }
-    } catch(e) {}
+    // 与服务端状态同步：定期检查（每30秒）
+    var serverCheckTick = 0;
+    function checkServerStatus() {
+        var ts = getSigninTs();
+        if (!ts) return;
+        fetch('/lab/checkin/status', { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.checked_in) {
+                localStorage.removeItem(STORAGE_TS);
+                localStorage.removeItem(STORAGE_ACK);
+                removeModal();
+                window.location.reload();
+            }
+        })
+        .catch(function() {});
+    }
 
-    // Expose
+    // 暴露接口
     window.LabRenew = {
-        setSignInTs: function(ts) { localStorage.setItem(STORAGE_KEY, ts); },
+        setSignInTs: function(t) { localStorage.setItem(STORAGE_TS, t); },
         confirm: function() {
-            stopAlertSound();
-            removeRenewModal();
+            stopBeep();
+            var modal = document.getElementById('renewModal');
+            var hour = modal ? parseFloat(modal.dataset.hour) : null;
+            if (!hour && activeRenewIdx >= 0) {
+                hour = RENEW_POINTS[activeRenewIdx];
+            }
+            removeModal();
+            if (hour) {
+                var key = ackKey(hour);
+                var a = readAck();
+                a[key] = true;
+                writeAck(a);
+                fetch('/lab/checkin/renew', { method: 'POST', cache: 'no-store' }).catch(function() {});
+            }
             LabToast.show('已确认在线，续签成功。', 'success', 3000);
         },
-        signout: function() {
-            stopAlertSound();
-            doAutoSignout();
-        },
-        tick: tick
+        signout: function() { stopBeep(); autoSignout(); },
+        tick: function() {
+            tick();
+            serverCheckTick++;
+            if (serverCheckTick >= 30) { serverCheckTick = 0; checkServerStatus(); }
+        }
     };
 
-    setInterval(tick, 1000);
-    tick();
+    setInterval(function() { window.LabRenew.tick(); }, 1000);
+    window.LabRenew.tick();
+    setTimeout(checkServerStatus, 1000);
 })();
 
 // ═══════════════ 全局未读消息轮询（所有页面生效） ═══════════════
@@ -336,7 +339,7 @@ const LabToast = {
     }
 
     poll();
-    setInterval(poll, 3000);
+    setInterval(poll, 10000);
 })();
 
 // ═══════════════ 全局 P2P 文件轮询（所有页面生效） ═══════════════
@@ -401,13 +404,13 @@ const LabToast = {
         });
         if (!started) {
             started = true;
-            setInterval(poll, 5000);
+            setInterval(poll, 15000);
         }
     }).catch(function() {
         // Even if init fails, start polling
         if (!started) {
             started = true;
-            setInterval(poll, 5000);
+            setInterval(poll, 15000);
         }
     });
 })();

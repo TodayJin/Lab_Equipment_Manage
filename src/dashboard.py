@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 from flask_login import login_required
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from datetime import datetime
 from src.models import db, Equipment, StockRecord, Notice, DutyDay
 
@@ -28,9 +29,10 @@ def index():
         Equipment.stock_quantity <= Equipment.alert_threshold
     ).order_by(Equipment.stock_quantity).all()
 
-    recent_records = StockRecord.query.order_by(
-        StockRecord.created_at.desc()
-    ).limit(10).all()
+    recent_records = StockRecord.query.options(
+        joinedload(StockRecord.equipment),
+        joinedload(StockRecord.user)
+    ).order_by(StockRecord.created_at.desc()).limit(10).all()
 
     # 公告
     notices = Notice.query.order_by(Notice.is_pinned.desc(), Notice.created_at.desc()).limit(5).all()

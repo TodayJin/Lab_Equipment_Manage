@@ -10,7 +10,7 @@ if __name__ == '__main__':
     try:
         from waitress import serve
         print(f"LabManager running on http://0.0.0.0:{PORT} (waitress)")
-        serve(app, host='0.0.0.0', port=PORT, threads=4,
+        serve(app, host='0.0.0.0', port=PORT, threads=8,
               max_request_body_size=5368709120,  # 5GB
               channel_timeout=600,               # 10min for large uploads
               send_bytes=1048576,

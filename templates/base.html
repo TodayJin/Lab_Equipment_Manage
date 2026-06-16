@@ -4,91 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}电子技术创新实验室 - 器材管理系统{% endblock %}</title>
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.2.2" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.2.2" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.2.2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3.2.2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}?v=3.2.2" id="dark-css"
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.3.0" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.3.0" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3.3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}?v=3.3.0" id="dark-css"
           {% if not (current_user.is_authenticated and current_user.dark_mode_enabled) %}disabled{% endif %}>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
     {% if current_user.is_authenticated %}
     <div class="layout">
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <i class="bi bi-cpu"></i>
-                <span>电子技术创新实验室</span>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ url_for('dashboard.index') }}" class="nav-item {{ 'active' if request.endpoint == 'dashboard.index' }}">
-                    <i class="bi bi-speedometer2"></i><span>仪表盘</span>
-                </a>
-                <a href="{{ url_for('equipment.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('equipment') }}">
-                    <i class="bi bi-box-seam"></i><span>器材管理</span>
-                </a>
-                <a href="{{ url_for('categories.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('categories') }}">
-                    <i class="bi bi-tags"></i><span>分类管理</span>
-                </a>
-                <div class="nav-divider"></div>
-                <a href="{{ url_for('stock.stock_in') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_in' }}">
-                    <i class="bi bi-box-arrow-in-down"></i><span>入库</span>
-                </a>
-                <a href="{{ url_for('stock.stock_out') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_out' }}">
-                    <i class="bi bi-box-arrow-up"></i><span>出库</span>
-                </a>
-                <div class="nav-divider"></div>
-                <a href="{{ url_for('records.index') }}" class="nav-item {{ 'active' if request.endpoint == 'records.index' }}">
-                    <i class="bi bi-journal-text"></i><span>记录查询</span>
-                </a>
-                <a href="{{ url_for('analytics.index') }}" class="nav-item {{ 'active' if request.endpoint == 'analytics.index' }}">
-                    <i class="bi bi-graph-up"></i><span>数据分析</span>
-                </a>
-                <div class="nav-divider"></div>
-                <a href="{{ url_for('lab.notices') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('lab') }}">
-                    <i class="bi bi-megaphone"></i><span>公告 & 工具</span>
-                </a>
-                <a href="{{ url_for('chat.index') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.index' }}">
-                    <i class="bi bi-chat-dots"></i><span>群聊</span>
-                    {% if unread_count %}
-                    <span class="chat-unread-badge">{{ unread_count }}</span>
-                    {% endif %}
-                </a>
-                <a href="{{ url_for('chat.files_list') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.files_list' }}">
-                    <i class="bi bi-folder2-open"></i><span>共享文件</span>
-                </a>
-                {% if current_user.is_admin %}
-                <div class="nav-divider"></div>
-                <a href="{{ url_for('admin_web.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin_web') }}">
-                    <i class="bi bi-shield-lock"></i><span>管理后台</span>
-                </a>
-                {% endif %}
-            </nav>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <a href="{{ url_for('account.index') }}" class="avatar-link">
-                        {% if avatar_url %}
-                        <img src="{{ avatar_url }}" class="avatar-img" alt="">
-                        {% else %}
-                        <i class="bi bi-person-circle avatar-placeholder"></i>
-                        {% endif %}
-                    </a>
-                    <div>
-                        <span>{{ current_user.username }}</span>
-                        <span class="badge bg-{{ 'warning' if current_user.is_admin else 'secondary' }} ms-1" style="font-size:10px">{{ '管理员' if current_user.is_admin else '用户' }}</span>
+        <button class="sidebar-mobile-toggle" id="sidebarToggle" aria-label="切换侧边栏">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <div class="sidebar-logo-icon"><i class="bi bi-cpu"></i></div>
+                        <div class="sidebar-logo-text">
+                            <span class="sidebar-title">电子技术创新实验室</span>
+                            <span class="sidebar-subtitle">器材管理系统</span>
+                        </div>
                     </div>
+                    <button class="sidebar-collapse-btn" id="sidebarCollapse" title="折叠/展开">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
                 </div>
-                <div class="sidebar-actions">
-                    <a href="{{ url_for('account.index') }}" title="账户管理"><i class="bi bi-person-gear"></i></a>
-                    <a href="{{ url_for('about.index') }}" title="关于"><i class="bi bi-info-circle"></i></a>
-                    <a href="{{ url_for('settings_routes.index') }}" title="个人设置"><i class="bi bi-gear"></i></a>
-                    <a href="{{ url_for('auth.logout') }}" title="退出登录"><i class="bi bi-box-arrow-right"></i></a>
+                <div class="sidebar-search">
+                    <i class="bi bi-search sidebar-search-icon"></i>
+                    <input type="text" placeholder="搜索菜单..." class="sidebar-search-input" />
+                    <span class="sidebar-search-hint"><kbd>K</kbd></span>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-item {{ 'active' if request.endpoint == 'dashboard.index' }}" title="仪表盘">
+                        <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+                        <span class="nav-text">仪表盘</span>
+                    </a>
+                    <a href="{{ url_for('equipment.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('equipment') }}" title="器材管理">
+                        <div class="nav-icon"><i class="bi bi-box-seam"></i></div>
+                        <span class="nav-text">器材管理</span>
+                    </a>
+                    <a href="{{ url_for('categories.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('categories') }}" title="分类管理">
+                        <div class="nav-icon"><i class="bi bi-tags"></i></div>
+                        <span class="nav-text">分类管理</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="{{ url_for('stock.stock_in') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_in' }}" title="入库">
+                        <div class="nav-icon"><i class="bi bi-box-arrow-in-down"></i></div>
+                        <span class="nav-text">入库</span>
+                    </a>
+                    <a href="{{ url_for('stock.stock_out') }}" class="nav-item {{ 'active' if request.endpoint == 'stock.stock_out' }}" title="出库">
+                        <div class="nav-icon"><i class="bi bi-box-arrow-up"></i></div>
+                        <span class="nav-text">出库</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="{{ url_for('records.index') }}" class="nav-item {{ 'active' if request.endpoint == 'records.index' }}" title="记录查询">
+                        <div class="nav-icon"><i class="bi bi-journal-text"></i></div>
+                        <span class="nav-text">记录查询</span>
+                    </a>
+                    <a href="{{ url_for('analytics.index') }}" class="nav-item {{ 'active' if request.endpoint == 'analytics.index' }}" title="数据分析">
+                        <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
+                        <span class="nav-text">数据分析</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="{{ url_for('lab.notices') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('lab') }}" title="公告 &amp; 工具">
+                        <div class="nav-icon"><i class="bi bi-megaphone"></i></div>
+                        <span class="nav-text">公告 &amp; 工具</span>
+                    </a>
+                    <a href="{{ url_for('chat.index') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.index' }}" title="群聊">
+                        <div class="nav-icon"><i class="bi bi-chat-dots"></i></div>
+                        <span class="nav-text">群聊</span>
+                    </a>
+                    <a href="{{ url_for('chat.files_list') }}" class="nav-item {{ 'active' if request.endpoint == 'chat.files_list' }}" title="共享文件">
+                        <div class="nav-icon"><i class="bi bi-folder2-open"></i></div>
+                        <span class="nav-text">共享文件</span>
+                    </a>
+                    {% if current_user.is_admin %}
+                    <div class="nav-divider"></div>
+                    <a href="{{ url_for('admin_web.index') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin_web') }}" title="管理后台">
+                        <div class="nav-icon"><i class="bi bi-shield-lock"></i></div>
+                        <span class="nav-text">管理后台</span>
+                    </a>
+                    {% endif %}
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="sidebar-profile">
+                        <div class="sidebar-avatar">
+                            {% if avatar_url %}
+                            <img src="{{ avatar_url }}" alt="">
+                            {% else %}
+                            <span class="sidebar-avatar-initials">{{ current_user.username[:1].upper() }}</span>
+                            {% endif %}
+                            <span class="sidebar-online-dot-mobile"></span>
+                        </div>
+                        <div class="sidebar-profile-text">
+                            <span class="sidebar-username">{{ current_user.username }}</span>
+                            <span class="sidebar-role">{{ '管理员' if current_user.is_admin else '用户' }}</span>
+                            <div class="sidebar-actions-row">
+                                <a href="{{ url_for('account.index') }}" class="sidebar-action-btn" title="账户管理"><i class="bi bi-person-gear"></i></a>
+                                <a href="{{ url_for('about.index') }}" class="sidebar-action-btn" title="关于"><i class="bi bi-info-circle"></i></a>
+                                <a href="{{ url_for('settings_routes.index') }}" class="sidebar-action-btn" title="个人设置"><i class="bi bi-gear"></i></a>
+                                <a href="{{ url_for('auth.logout') }}" class="sidebar-action-btn sidebar-logout-btn" title="退出登录"><i class="bi bi-box-arrow-right"></i></a>
+                            </div>
+                        </div>
+                        <a href="https://github.com/TodayJin/Lab_Equipment_Manage" class="sidebar-gh-link" target="_blank" title="GitHub 仓库"><i class="bi bi-github"></i></a>
+                    </div>
                 </div>
             </div>
         </aside>
         <main class="main-content">
             <header class="topbar">
-                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+                <div class="topbar-left">
+                    <button class="topbar-toggle" id="topbarToggle" aria-label="切换侧边栏">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h1 class="page-title{% if current_user.is_authenticated and current_user.dark_mode_enabled %} dark-title{% endif %}">{% block page_title %}{% endblock %}</h1>
+                </div>
                 <div class="topbar-right">
                     {% block breadcrumb %}{% endblock %}
                     {% if request.endpoint != 'lab.checkin' %}
@@ -141,7 +175,7 @@
     </div>
     {% endif %}
 
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}?v=3.2.2"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}?v=3.3.0"></script>
     <script>
     // 心跳：每45秒告诉服务器我在线
     {% if current_user.is_authenticated %}
@@ -150,8 +184,91 @@
     }, 45000);
     fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
     {% endif %}
+
+    // ── Sidebar interactivity ──
+    (function() {
+        var sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        var collapseBtn = document.getElementById('sidebarCollapse');
+        var toggleBtn = document.getElementById('sidebarToggle');
+        var topbarToggle = document.getElementById('topbarToggle');
+        var overlay = document.getElementById('sidebarOverlay');
+        var searchInput = sidebar.querySelector('.sidebar-search-input');
+        var isMobile = function() { return window.innerWidth < 768; };
+
+        // Desktop collapse (slides off-screen)
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                try { localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed') ? '1' : ''); } catch(e) {}
+            });
+        }
+
+        // Topbar hamburger: on mobile opens drawer, on desktop expands collapsed sidebar
+        function handleToggle() {
+            if (isMobile()) {
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.add('show');
+            } else {
+                sidebar.classList.remove('collapsed');
+                try { localStorage.setItem('sidebar-collapsed', ''); } catch(e) {}
+            }
+        }
+        function closeSidebar() { sidebar.classList.remove('open'); if (overlay) overlay.classList.remove('show'); }
+
+        if (toggleBtn) toggleBtn.addEventListener('click', handleToggle);
+        if (topbarToggle) topbarToggle.addEventListener('click', handleToggle);
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+
+        // Restore collapse state on desktop
+        if (!isMobile()) {
+            try {
+                if (localStorage.getItem('sidebar-collapsed') === '1') {
+                    sidebar.classList.add('collapsed');
+                }
+            } catch(e) {}
+        }
+
+        // Close mobile drawer on resize to desktop
+        window.addEventListener('resize', function() {
+            if (!isMobile()) closeSidebar();
+        });
+
+        // Escape closes mobile drawer
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) closeSidebar();
+        });
+
+        // Ctrl+K focuses search
+        if (searchInput) {
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    sidebar.classList.remove('collapsed');
+                    try { localStorage.setItem('sidebar-collapsed', ''); } catch(e) {}
+                    searchInput.focus();
+                }
+            });
+        }
+
+        // Search filtering
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var q = this.value.toLowerCase().trim();
+                var items = sidebar.querySelectorAll('.nav-item');
+                var dividers = sidebar.querySelectorAll('.nav-divider');
+                items.forEach(function(item) {
+                    var text = item.querySelector('.nav-text');
+                    if (!text) return;
+                    item.style.display = (!q || text.textContent.toLowerCase().includes(q)) ? '' : 'none';
+                });
+                dividers.forEach(function(d) { d.style.display = (!q) ? '' : 'none'; });
+            });
+        }
+    })();
     </script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=3.2.2"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=3.3.0"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

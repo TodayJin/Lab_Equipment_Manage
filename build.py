@@ -1,9 +1,9 @@
-# LabManager 打包脚本
+# LabManager V3.3.0 打包脚本
 import PyInstaller.__main__
 
 PyInstaller.__main__.run([
     "src/admin.py",
-    "--name=LabManager-V3.2.2",
+    "--name=LabManager-V3.3.0",
     "--onefile",
     "--windowed",
     "--noconsole",

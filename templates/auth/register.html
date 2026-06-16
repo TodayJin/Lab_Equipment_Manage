@@ -2,39 +2,446 @@
 
 {% block title %}注册 - 电子技术创新实验室{% endblock %}
 
+{% block extra_head %}
+<style>
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f7;
+    padding: 20px;
+}
+html.dark .auth-wrapper { background: #28243D; }
+
+.auth-card {
+    display: flex;
+    width: 100%;
+    max-width: 880px;
+    min-height: 560px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+    animation: authFadeIn 0.5s ease both;
+}
+html.dark .auth-card { background: #312D4B; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+@keyframes authFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+.auth-visual {
+    width: 44%;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #ede9fe 100%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+}
+html.dark .auth-visual {
+    background: linear-gradient(135deg, rgba(140,87,255,0.08) 0%, rgba(140,87,255,0.05) 50%, rgba(140,87,255,0.03) 100%);
+}
+@media (min-width: 768px) { .auth-visual { display: flex; } }
+
+.auth-visual canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.5;
+}
+html.dark .auth-visual canvas { opacity: 0.4; }
+
+.auth-visual-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+.auth-visual-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #8C57FF, #A069FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(140,87,255,0.3);
+}
+.auth-visual-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 6px;
+    letter-spacing: -0.3px;
+}
+html.dark .auth-visual-title { color: rgb(231 227 252 / .95); }
+.auth-visual-sub {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+html.dark .auth-visual-sub { color: rgb(231 227 252 / .5); }
+
+.auth-form-panel {
+    flex: 1;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+@media (max-width: 767px) { .auth-form-panel { padding: 32px 24px; } }
+
+.auth-form-panel h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 4px;
+    letter-spacing: -0.3px;
+}
+html.dark .auth-form-panel h1 { color: rgb(231 227 252 / .95); }
+.auth-form-panel .auth-lead {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 28px;
+}
+html.dark .auth-form-panel .auth-lead { color: rgb(231 227 252 / .5); }
+
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-form .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+}
+html.dark .auth-form .form-label { color: rgb(231 227 252 / .8); }
+.auth-form .form-label .required { color: #8C57FF; }
+
+.auth-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.auth-input-wrap .input-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 2;
+}
+.auth-input-wrap .form-control {
+    width: 100%;
+    height: 42px;
+    padding: 9px 12px 9px 38px;
+    font-size: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+html.dark .auth-input-wrap .form-control {
+    background: #28243D;
+    border-color: #4D4970;
+    color: rgb(231 227 252 / .9);
+}
+.auth-input-wrap .form-control:focus {
+    border-color: #8C57FF;
+    box-shadow: 0 0 0 3px rgba(140,87,255,0.1);
+    background: #fff;
+    outline: none;
+}
+html.dark .auth-input-wrap .form-control:focus {
+    background: #312D4B;
+    border-color: #8C57FF;
+    box-shadow: 0 0 0 3px rgba(140,87,255,0.15);
+}
+.auth-input-wrap .form-control::placeholder { color: #94a3b8; }
+html.dark .auth-input-wrap .form-control::placeholder { color: rgb(231 227 252 / .35); }
+
+.auth-input-wrap .input-group {
+    width: 100%;
+}
+.auth-input-wrap .input-group .form-control {
+    width: auto;
+    flex: 1;
+    border-radius: 8px 0 0 8px;
+}
+.auth-input-wrap .input-group .toggle-pwd {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #e2e8f0;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+html.dark .auth-input-wrap .input-group .toggle-pwd {
+    background: #28243D;
+    border-color: #4D4970;
+}
+.auth-input-wrap .input-group .toggle-pwd:hover { color: #8C57FF; }
+
+.auth-submit {
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #8C57FF, #A069FF);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 2px;
+}
+.auth-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(140,87,255,0.3);
+}
+.auth-submit:active { transform: scale(0.98); }
+.auth-submit i { font-size: 16px; transition: transform 0.3s ease; }
+.auth-submit:hover i { transform: translateX(3px); }
+
+.auth-submit .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+}
+.auth-submit.loading .spinner { display: inline-block; }
+.auth-submit.loading .btn-text { display: none; }
+.auth-submit.loading i { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.auth-submit .shimmer {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    filter: blur(6px);
+    transform: skewX(-20deg);
+    animation: shimmerMove 2s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes shimmerMove {
+    0% { left: -60px; }
+    100% { left: 110%; }
+}
+.auth-submit:hover .shimmer { animation-duration: 0.8s; }
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+html.dark .auth-divider::before,
+html.dark .auth-divider::after { background: #4D4970; }
+.auth-divider span { font-size: 12px; color: #94a3b8; }
+
+.auth-footer-text {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+}
+html.dark .auth-footer-text { color: rgb(231 227 252 / .5); }
+.auth-footer-text a {
+    color: #8C57FF;
+    font-weight: 600;
+    text-decoration: none;
+}
+html.dark .auth-footer-text a { color: #B48AFF; }
+.auth-footer-text a:hover { text-decoration: underline; }
+.auth-footer-text small { display: block; color: #94a3b8; font-size: 11px; margin-top: 2px; }
+
+.invalid-feedback { color: #ef4444; font-size: 12px; margin-top: 3px; }
+
+.auth-flash {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    min-width: 300px;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    animation: slideDown 0.35s ease both;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+html.dark .auth-flash {
+    background: rgba(49,45,75,0.95);
+    border-color: #4D4970;
+    color: rgb(231 227 252 / .9);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+html.dark .auth-wrapper .alert-success { border-color: rgba(86,202,0,0.3) !important; }
+html.dark .auth-wrapper .alert-danger { border-color: rgba(255,76,81,0.3) !important; }
+</style>
+{% endblock %}
+
 {% block auth_content %}
 <div class="auth-card">
-    <div class="auth-header">
-        <i class="bi bi-cpu auth-logo"></i>
-        <h2>电子技术创新实验室</h2>
-        <p class="auth-subtitle">创建新账号</p>
+    <div class="auth-visual">
+        <canvas id="authCanvas"></canvas>
+        <div class="auth-visual-content">
+            <div class="auth-visual-icon"><i class="bi bi-cpu"></i></div>
+            <h2 class="auth-visual-title">电子技术创新实验室</h2>
+            <p class="auth-visual-sub">智能器材管理系统<br>高效管理 · 便捷追踪</p>
+        </div>
     </div>
-    <form method="POST" class="auth-form">
-        {{ form.hidden_tag() }}
-        <div class="mb-3">
-            <label class="form-label">{{ form.username.label.text }}</label>
-            {{ form.username(class="form-control", placeholder="请输入用户名") }}
-            {% if form.username.errors %}
-                <div class="invalid-feedback d-block">{{ form.username.errors[0] }}</div>
-            {% endif %}
-        </div>
-        <div class="mb-3">
-            <label class="form-label">{{ form.password.label.text }}</label>
-            <div class="input-group">
-                {{ form.password(class="form-control", placeholder="请输入密码（至少4位）", id="regPassword") }}
-                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('regPassword', this)" title="显示密码">
-                    <i class="bi bi-eye"></i>
-                </button>
+    <div class="auth-form-panel">
+        <h1>Create Account</h1>
+        <p class="auth-lead">注册新账号</p>
+        <form method="POST" class="auth-form" id="registerForm">
+            {{ form.hidden_tag() }}
+            <div>
+                <label class="form-label" for="regUsername">用户名 <span class="required">*</span></label>
+                <div class="auth-input-wrap">
+                    <i class="bi bi-person input-icon"></i>
+                    {{ form.username(class="form-control", placeholder="输入用户名", id="regUsername") }}
+                </div>
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">{{ form.username.errors[0] }}</div>
+                {% endif %}
             </div>
-            {% if form.password.errors %}
-                <div class="invalid-feedback d-block">{{ form.password.errors[0] }}</div>
-            {% endif %}
+            <div>
+                <label class="form-label" for="regPassword">密码 <span class="required">*</span></label>
+                <div class="auth-input-wrap">
+                    <div class="input-group d-flex">
+                        {{ form.password(class="form-control", placeholder="密码至少4位", id="regPassword") }}
+                        <button type="button" class="toggle-pwd" onclick="togglePassword('regPassword', this)" title="显示密码">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                {% if form.password.errors %}
+                    <div class="invalid-feedback">{{ form.password.errors[0] }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="auth-submit" id="registerBtn">
+                <span class="shimmer"></span>
+                <span class="spinner"></span>
+                <span class="btn-text">注册</span>
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </form>
+        <div class="auth-divider"><span>or</span></div>
+        <div class="auth-footer-text">
+            已有账号？<a href="{{ url_for('auth.login') }}">立即登录</a>
+            <small>第一个注册的账号将自动成为管理员</small>
         </div>
-        {{ form.submit(class="btn btn-primary w-100") }}
-    </form>
-    <div class="auth-footer">
-        已有账号？<a href="{{ url_for('auth.login') }}">立即登录</a>
-        <br><small class="text-muted">提示：第一个注册的账号将自动成为管理员</small>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    var btn = document.getElementById('registerBtn');
+    if (btn) btn.classList.remove('loading');
+})();
+
+(function() {
+    var canvas = document.getElementById('authCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var w, h;
+    var particles = [];
+    var PARTICLE_COUNT = 60;
+    var CONNECT_DIST = 120;
+
+    function resize() {
+        var rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        w = canvas.width;
+        h = canvas.height;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (var i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            r: Math.random() * 2 + 1
+        });
+    }
+
+    function drawParticles() {
+        ctx.clearRect(0, 0, w, h);
+        for (var i = 0; i < particles.length; i++) {
+            var p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(140,87,255,0.6)';
+            ctx.fill();
+        }
+        for (var i = 0; i < particles.length; i++) {
+            for (var j = i + 1; j < particles.length; j++) {
+                var dx = particles[i].x - particles[j].x;
+                var dy = particles[i].y - particles[j].y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < CONNECT_DIST) {
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = 'rgba(140,87,255,' + (0.15 * (1 - dist / CONNECT_DIST)) + ')';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+})();
+</script>
 {% endblock %}

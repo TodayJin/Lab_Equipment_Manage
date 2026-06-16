@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 from src.settings import load as load_settings, save as save_settings, DEFAULTS as SETTING_DEFAULTS, get_default_db_path
 
 # 版本和更新配置
-CURRENT_VERSION = "v3.2.2"
+CURRENT_VERSION = "v3.3.0"
 GITHUB_REPO = "TodayJin/Lab_Equipment_Manage"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -625,7 +625,7 @@ class ServerManager:
                 app = create_app()
                 self.log_queue.put("[系统] 服务器启动成功！\n\n")
                 from waitress import serve
-                serve(app, host="0.0.0.0", port=self._get_port(), threads=4, _quiet=True)
+                serve(app, host="0.0.0.0", port=self._get_port(), threads=8, _quiet=True)
             except Exception as e:
                 if not self._shutdown_event.is_set():
                     self.log_queue.put(f"[错误] 服务器异常: {e}\n")
@@ -1154,7 +1154,8 @@ class ServerManager:
             # 源码模式：保存到 dist 目录
             dist_dir = BASE_DIR / "dist"
             os.makedirs(dist_dir, exist_ok=True)
-            new_path = os.path.join(dist_dir, target_name)
+            exe_asset_name = exe_asset["name"]
+            new_path = os.path.join(dist_dir, exe_asset_name)
             try:
                 os.replace(tmp_path, new_path)
                 self.root.after(0, lambda: self._append_log(f"[更新] 已保存至 {new_path}\n[更新] 更新完成 ✓\n"))
@@ -1178,5 +1179,11 @@ class ServerManager:
 if __name__ == "__main__":
     root = tk.Tk()
     app = ServerManager(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()
+    try:
+        root.protocol("WM_DELETE_WINDOW", app.on_close)
+    except tk.TclError:
+        pass
+    try:
+        root.mainloop()
+    except tk.TclError:
+        pass
