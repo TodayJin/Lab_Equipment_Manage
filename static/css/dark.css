@@ -46,13 +46,15 @@ html.dark .sidebar-mobile-toggle { background: #312D4B; color: rgb(231 227 252 /
 html.dark .topbar { background: #312D4B; }
 html.dark .topbar-toggle { color: rgb(231 227 252 / .5); }
 html.dark .topbar-toggle:hover { background: #3D395B; }
+html.dark .page-title { background: linear-gradient(135deg, rgb(231 227 252 / .95), rgb(231 227 252 / .6)) !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; }
 
 /* ── Cards & panels ── */
 html.dark .stat-card,
 html.dark .dash-panel,
 html.dark .form-card,
 html.dark .filter-bar,
-html.dark .card { background: #312D4B !important; color: rgb(231 227 252 / .9) !important; }
+html.dark .filter-panel,
+html.dark .card { background: #312D4B !important; color: rgb(231 227 252 / .9) !important; border-color: #4D4970 !important; }
 html.dark .stat-card::after { display: none !important; }
 html.dark .stat-card:hover { border-color: #4D4970 !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; transform: translateY(-2px); }
 html.dark .stat-value { color: rgb(231 227 252 / .95) !important; }
