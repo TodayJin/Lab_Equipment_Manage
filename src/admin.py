@@ -920,26 +920,29 @@ class ServerManager:
             except: pass
             self._tray_icon = None
 
-        def _toggle_window(icon, item=None):
-            self.root.after(0, self._toggle_window)
+        try:
+            def _toggle_window(icon, item=None):
+                self.root.after(0, self._toggle_window)
 
-        def _quit_app(icon, item=None):
-            icon.stop()
-            self._tray_running = False
-            self.root.after(0, self._do_quit)
+            def _quit_app(icon, item=None):
+                icon.stop()
+                self._tray_running = False
+                self.root.after(0, self._do_quit)
 
-        menu = _pystray_mod.Menu(
-            _pystray_mod.MenuItem("显示/隐藏面板", _toggle_window, default=True),
-            _pystray_mod.Menu.SEPARATOR,
-            _pystray_mod.MenuItem("退出程序", _quit_app),
-        )
+            menu = _pystray_mod.Menu(
+                _pystray_mod.MenuItem("显示/隐藏面板", _toggle_window, default=True),
+                _pystray_mod.Menu.SEPARATOR,
+                _pystray_mod.MenuItem("退出程序", _quit_app),
+            )
 
-        self._tray_icon = _pystray_mod.Icon(
-            "labmanager", self._create_tray_image(),
-            "电子技术创新实验室 — 器材管理系统", menu
-        )
-        self._tray_icon.run_detached()
-        self._tray_running = True
+            self._tray_icon = _pystray_mod.Icon(
+                "labmanager", self._create_tray_image(),
+                "电子技术创新实验室 — 器材管理系统", menu
+            )
+            self._tray_icon.run_detached()
+            self._tray_running = True
+        except Exception as e:
+            self._append_log(f"[提示] 系统托盘创建失败: {e}\n（关闭窗口时将直接退出）\n")
 
     def _toggle_window(self):
         """切换窗口显示/隐藏"""
@@ -972,8 +975,12 @@ class ServerManager:
         self.root.destroy()
 
     def on_close(self):
-        """关闭窗口 → 隐藏到托盘"""
-        self._hide_to_tray()
+        """关闭窗口 → 隐藏到托盘（托盘可用时），否则退出"""
+        if self._tray_running:
+            self._hide_to_tray()
+        else:
+            if messagebox.askyesno("退出程序", "确定要退出程序吗？\n正在运行的服务也会一并停止。"):
+                self._do_quit()
 
     def _update_stats(self):
         """定时更新统计信息"""

@@ -1,4 +1,4 @@
-# LabManager V3.3.0 打包脚本
+# LabManager V3.3.0 打包脚本（服务器管理面板）
 import PyInstaller.__main__
 
 PyInstaller.__main__.run([
@@ -19,7 +19,11 @@ PyInstaller.__main__.run([
     "--hidden-import=jinja2",
     "--hidden-import=sqlalchemy",
     "--hidden-import=wtforms",
-    "--hidden-import=tkinter",
+    "--hidden-import=markupsafe",
+    "--hidden-import=itsdangerous",
+    "--hidden-import=click",
+    "--hidden-import=blinker",
+    "--hidden-import=watchdog",
     "--hidden-import=psutil",
     "--hidden-import=pystray",
     "--hidden-import=PIL",

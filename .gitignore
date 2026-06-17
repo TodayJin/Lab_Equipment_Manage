@@ -12,3 +12,4 @@ settings.json
 static/uploads/
 .codegraph/
 *.exe
+libs/

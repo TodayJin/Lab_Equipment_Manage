@@ -238,3 +238,15 @@ html.dark .rounded-circle.bg-success { background: rgba(86,202,0,.15) !important
 html.dark .rounded-circle.bg-info { background: rgba(88,86,214,.2) !important; }
 html.dark .rounded-circle.bg-warning { background: rgba(255,171,0,.15) !important; }
 html.dark .rounded-circle.bg-danger { background: rgba(255,76,81,.15) !important; }
+
+/* ── Notice bar (仪表盘公告栏) ── */
+html.dark .notice-bar { background: linear-gradient(135deg, #3D395B 0%, #312D4B 100%) !important; border-color: #4D4970 !important; }
+html.dark .notice-icon { color: #B48AFF !important; }
+html.dark .notice-separator { color: rgb(231 227 252 / .2) !important; }
+html.dark .notice-item { color: rgb(231 227 252 / .8) !important; }
+html.dark .notice-item strong { color: rgb(231 227 252 / .95) !important; }
+
+/* ── Duty today (仪表盘今日值日) ── */
+html.dark .duty-today { background: linear-gradient(135deg, rgba(86,202,0,.12) 0%, rgba(86,202,0,.05) 100%) !important; border-color: rgba(86,202,0,.25) !important; color: rgb(231 227 252 / .9) !important; }
+html.dark .duty-today i { color: #71DD37 !important; }
+html.dark .duty-today .text-muted { color: rgb(231 227 252 / .5) !important; }
