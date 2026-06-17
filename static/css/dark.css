@@ -53,6 +53,10 @@ html.dark .dash-panel,
 html.dark .form-card,
 html.dark .filter-bar,
 html.dark .card { background: #312D4B !important; color: rgb(231 227 252 / .9) !important; }
+html.dark .stat-card::after { display: none !important; }
+html.dark .stat-card:hover { border-color: #4D4970 !important; box-shadow: 0 4px 20px rgba(0,0,0,.3) !important; transform: translateY(-2px); }
+html.dark .stat-value { color: rgb(231 227 252 / .95) !important; }
+html.dark .stat-label { color: rgb(231 227 252 / .5) !important; }
 html.dark .card-header { background: #28243D !important; color: rgb(231 227 252 / .95) !important; border-color: #3D395B !important; }
 html.dark .card-footer { background: #28243D !important; border-color: #3D395B !important; }
 html.dark .card-body { background: #312D4B !important; color: rgb(231 227 252 / .9) !important; }
@@ -78,6 +82,15 @@ html.dark .row-warning a { color: #FF4C51 !important; }
 /* ── Forms ── */
 html.dark .form-control,
 html.dark .form-select { background: #28243D !important; border-color: #4D4970 !important; color: rgb(231 227 252 / .9) !important; }
+html.dark input[type="file"].form-control { color: rgb(231 227 252 / .9) !important; }
+html.dark input[type="file"].form-control:hover { color: rgb(231 227 252 / .9) !important; }
+html.dark input[type="file"]::-webkit-file-upload-button,
+html.dark input[type="file"]::file-selector-button { background: #3D395B; color: #FFB400 !important; border: 1px solid #4D4970; border-radius: 4px; padding: 4px 10px; margin-right: 8px; font-size: 12px; }
+html.dark input[type="file"]::-webkit-file-upload-button:hover,
+html.dark input[type="file"]::file-selector-button:hover { background: #4D4970; color: #FFB400 !important; }
+html.dark .progress { background: #3D395B !important; }
+html.dark .progress-bar { background-color: var(--pri) !important; }
+html.dark .progress-bar-striped { background-image: linear-gradient(45deg, rgba(0,0,0,.15) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.15) 50%, rgba(0,0,0,.15) 75%, transparent 75%, transparent) !important; }
 html.dark .form-control::placeholder { color: rgb(231 227 252 / .35); }
 html.dark .form-label { color: rgb(231 227 252 / .8); }
 html.dark .form-text { color: rgb(231 227 252 / .5); }
@@ -150,14 +163,6 @@ html.dark .chat-input-bar textarea { background: #28243D; border-color: #4D4970;
 html.dark .checkin-badge.online { background: rgba(86,202,0,.15); color: #71DD37; }
 html.dark .checkin-time { color: rgb(231 227 252 / .5); }
 
-/* ── Ranking cards (在线时长排名) ── */
-html.dark .ranking-card { background: #312D4B !important; border-color: #4D4970 !important; }
-html.dark .top-1 { background: linear-gradient(135deg,rgba(245,158,11,.15),rgba(255,251,235,.05)) !important; }
-html.dark .top-2 { background: linear-gradient(135deg,rgba(100,116,139,.15),rgba(248,250,252,.05)) !important; }
-html.dark .top-3 { background: linear-gradient(135deg,rgba(217,119,6,.15),rgba(255,247,237,.05)) !important; }
-html.dark .ranking-name { color: rgb(231 227 252 / .95) !important; }
-html.dark .ranking-bar-wrap { background: #3D395B !important; }
-
 /* ── Filter panel (记录查询上方操作栏) ── */
 html.dark .filter-panel { background: #312D4B !important; border-color: #4D4970 !important; }
 
@@ -194,3 +199,40 @@ html.dark .auth-header h2 { color: rgb(231 227 252 / .95); }
 html.dark .auth-subtitle { color: rgb(231 227 252 / .5); }
 html.dark .auth-footer { color: rgb(231 227 252 / .5); }
 html.dark .auth-footer a { color: #B48AFF; }
+
+/* ── Stock direction banner (入库/出库) ── */
+html.dark .stock-direction { background: #312D4B !important; color: rgb(231 227 252 / .9) !important; border: 1px solid #3D395B; }
+html.dark .stock-direction:has(.stock-dir-in) { background: rgba(86,202,0,.1) !important; color: #71DD37 !important; }
+html.dark .stock-direction:has(.stock-dir-out) { background: rgba(255,76,81,.1) !important; color: #FF4C51 !important; }
+
+/* ── Undo list items ── */
+html.dark .undo-item { background: #3D395B !important; border-color: #4D4970 !important; color: rgb(231 227 252 / .9) !important; }
+
+/* ── Checkin notification overlay card ── */
+html.dark #notifOverlay .text-center { background: #312D4B !important; box-shadow: 0 4px 24px rgba(0,0,0,.4) !important; }
+html.dark #notifOverlay .text-center h5 { color: rgb(231 227 252 / .95) !important; }
+html.dark #notifOverlay .text-center .text-muted { color: rgb(231 227 252 / .5) !important; }
+
+/* ── Checkin countdown panel ── */
+html.dark #countdownPanel { background: #3D395B !important; border-color: #4D4970 !important; }
+html.dark #countdownPanel .text-muted { color: rgb(231 227 252 / .5) !important; }
+
+/* ── Ranking cards (签到统计内联样式) ── */
+html.dark .ranking-card { background: #312D4B !important; border-color: #4D4970 !important; color: rgb(231 227 252 / .9) !important; }
+html.dark .ranking-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,.3) !important; }
+html.dark .top-1 { background: linear-gradient(135deg,rgba(245,158,11,.15),rgba(255,251,235,.05)) !important; border-color: #f59e0b !important; }
+html.dark .top-2 { background: linear-gradient(135deg,rgba(100,116,139,.15),rgba(248,250,252,.05)) !important; border-color: #64748b !important; }
+html.dark .top-3 { background: linear-gradient(135deg,rgba(217,119,6,.15),rgba(255,247,237,.05)) !important; border-color: #d97706 !important; }
+html.dark .ranking-name { color: rgb(231 227 252 / .95) !important; }
+html.dark .ranking-bar-wrap { background: #3D395B !important; }
+html.dark .ranking-num { color: rgb(231 227 252 / .4) !important; }
+
+/* ── Member detail modal stats cards ── */
+html.dark #memberModal .border.rounded-3.p-3 { background: #312D4B !important; border-color: #4D4970 !important; }
+
+/* ── Analytics stats cards (内联 bg-opacity circles) ── */
+html.dark .rounded-circle.bg-primary { background: rgba(140,87,255,.2) !important; }
+html.dark .rounded-circle.bg-success { background: rgba(86,202,0,.15) !important; }
+html.dark .rounded-circle.bg-info { background: rgba(88,86,214,.2) !important; }
+html.dark .rounded-circle.bg-warning { background: rgba(255,171,0,.15) !important; }
+html.dark .rounded-circle.bg-danger { background: rgba(255,76,81,.15) !important; }
