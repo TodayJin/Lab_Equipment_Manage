@@ -1,0 +1,458 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>共享文件 - 电子技术创新实验室</title>
+    <link href="/static/css/bootstrap.min.css?v=3.3.0" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css?v=3.3.0" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.3.0">
+    <link rel="stylesheet" href="/static/css/app.css?v=3.3.0">
+    <link rel="stylesheet" href="/static/css/dark.css?v=3.3.0" id="dark-css"
+          disabled>
+    
+</head>
+<body>
+    
+    <div class="layout">
+        <button class="sidebar-mobile-toggle" id="sidebarToggle" aria-label="切换侧边栏">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <div class="sidebar-logo-icon"><i class="bi bi-cpu"></i></div>
+                        <div class="sidebar-logo-text">
+                            <span class="sidebar-title">电子技术创新实验室</span>
+                            <span class="sidebar-subtitle">器材管理系统</span>
+                        </div>
+                    </div>
+                    <button class="sidebar-collapse-btn" id="sidebarCollapse" title="折叠/展开">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                </div>
+                <div class="sidebar-search">
+                    <i class="bi bi-search sidebar-search-icon"></i>
+                    <input type="text" placeholder="搜索菜单..." class="sidebar-search-input" />
+                    <span class="sidebar-search-hint"><kbd>K</kbd></span>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="/" class="nav-item " title="仪表盘">
+                        <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
+                        <span class="nav-text">仪表盘</span>
+                    </a>
+                    <a href="/equipment/" class="nav-item " title="器材管理">
+                        <div class="nav-icon"><i class="bi bi-box-seam"></i></div>
+                        <span class="nav-text">器材管理</span>
+                    </a>
+                    <a href="/categories/" class="nav-item " title="分类管理">
+                        <div class="nav-icon"><i class="bi bi-tags"></i></div>
+                        <span class="nav-text">分类管理</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="/stock/in" class="nav-item " title="入库">
+                        <div class="nav-icon"><i class="bi bi-box-arrow-in-down"></i></div>
+                        <span class="nav-text">入库</span>
+                    </a>
+                    <a href="/stock/out" class="nav-item " title="出库">
+                        <div class="nav-icon"><i class="bi bi-box-arrow-up"></i></div>
+                        <span class="nav-text">出库</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="/records/" class="nav-item " title="记录查询">
+                        <div class="nav-icon"><i class="bi bi-journal-text"></i></div>
+                        <span class="nav-text">记录查询</span>
+                    </a>
+                    <a href="/analytics/" class="nav-item " title="数据分析">
+                        <div class="nav-icon"><i class="bi bi-graph-up"></i></div>
+                        <span class="nav-text">数据分析</span>
+                    </a>
+                    <div class="nav-divider"></div>
+                    <a href="/lab/notices" class="nav-item " title="公告 &amp; 工具">
+                        <div class="nav-icon"><i class="bi bi-megaphone"></i></div>
+                        <span class="nav-text">公告 &amp; 工具</span>
+                    </a>
+                    <a href="/chat/" class="nav-item " title="群聊">
+                        <div class="nav-icon"><i class="bi bi-chat-dots"></i></div>
+                        <span class="nav-text">群聊</span>
+                    </a>
+                    <a href="/chat/files" class="nav-item active" title="共享文件">
+                        <div class="nav-icon"><i class="bi bi-folder2-open"></i></div>
+                        <span class="nav-text">共享文件</span>
+                    </a>
+                    
+                    <div class="nav-divider"></div>
+                    <a href="/admin/" class="nav-item " title="管理后台">
+                        <div class="nav-icon"><i class="bi bi-shield-lock"></i></div>
+                        <span class="nav-text">管理后台</span>
+                    </a>
+                    
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="sidebar-profile">
+                        <div class="sidebar-avatar">
+                            
+                            <span class="sidebar-avatar-initials">T</span>
+                            
+                            <span class="sidebar-online-dot-mobile"></span>
+                        </div>
+                        <div class="sidebar-profile-text">
+                            <span class="sidebar-username">testuser</span>
+                            <span class="sidebar-role">管理员</span>
+                            <div class="sidebar-actions-row">
+                                <a href="/account/" class="sidebar-action-btn" title="账户管理"><i class="bi bi-person-gear"></i></a>
+                                <a href="/about/" class="sidebar-action-btn" title="关于"><i class="bi bi-info-circle"></i></a>
+                                <a href="/settings/" class="sidebar-action-btn" title="个人设置"><i class="bi bi-gear"></i></a>
+                                <a href="/logout" class="sidebar-action-btn sidebar-logout-btn" title="退出登录"><i class="bi bi-box-arrow-right"></i></a>
+                            </div>
+                        </div>
+                        <a href="https://github.com/TodayJin/Lab_Equipment_Manage" class="sidebar-gh-link" target="_blank" title="GitHub 仓库"><i class="bi bi-github"></i></a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="topbar-toggle" id="topbarToggle" aria-label="切换侧边栏">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h1 class="page-title">共享文件</h1>
+                </div>
+                <div class="topbar-right">
+                    
+                    
+                    <div class="quick-checkin">
+                        
+                        <span class="checkin-badge online"><i class="bi bi-circle-fill"></i> 在线</span>
+                        
+                        <span class="checkin-time">14:36</span>
+                        
+                        <form method="POST" action="/lab/checkin/1/signout" class="d-inline">
+                            <button class="btn btn-sm btn-outline-warning">签退</button>
+                        </form>
+                        
+                    </div>
+                    
+                </div>
+            </header>
+            <div class="content-area">
+                
+                    
+                
+                
+<!-- 上传进度条（隐藏） -->
+<div class="upload-progress" id="uploadProgress" style="display:none">
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-cloud-arrow-up"></i><span>上传中</span></div>
+        <div class="p-3">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="small fw-medium" id="upFilename"></span>
+                <span class="small" id="upSpeed">—</span>
+            </div>
+            <div class="progress" style="height:8px">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="upBar" style="width:0%"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+                <span class="small text-muted" id="upSent">0 KB</span>
+                <span class="small text-muted" id="upTotal"></span>
+            </div>
+            <button class="btn btn-sm btn-outline-danger mt-2 w-100" id="upCancel" style="display:none" onclick="cancelUpload()"><i class="bi bi-x-circle"></i> 取消传输</button>
+        </div>
+    </div>
+</div>
+
+<div class="dash-grid">
+    <!-- 上传到服务器 -->
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-cloud-upload"></i><span>上传到服务器</span></div>
+        <form method="POST" action="/chat/files/upload" enctype="multipart/form-data" class="p-3" onsubmit="return uploadWithProgress(this, event)">
+            <div class="mb-2"><input type="file" name="file" id="fixedFile" class="form-control form-control-sm" required></div>
+            <div class="mb-2"><input type="text" name="description" class="form-control form-control-sm" placeholder="描述（可选）"></div>
+            <button class="btn btn-primary btn-sm w-100" id="fixedSubmit"><i class="bi bi-upload"></i> 上传</button>
+        </form>
+    </div>
+
+    <!-- P2P 在线用户传输 -->
+    <div class="dash-panel mb-3">
+        <div class="panel-head"><i class="bi bi-send"></i><span>点对点传输</span>
+            <span class="badge bg-success ms-2">1 人在线</span>
+        </div>
+        <div class="p-3">
+            
+            <form method="POST" action="/chat/p2p/send" enctype="multipart/form-data" onsubmit="return uploadWithProgress(this, event)">
+                <div class="mb-2">
+                    <label class="form-label small">发送给</label>
+                    <select name="receiver_id" class="form-select form-select-sm" required>
+                        <option value="">— 选择在线用户 —</option>
+                        
+                        
+                        
+                    </select>
+                </div>
+                <div class="mb-2"><input type="file" name="p2p_file" id="p2pFile" class="form-control form-control-sm" required></div>
+                <button class="btn btn-outline-primary btn-sm w-100" id="p2pSubmit"><i class="bi bi-send"></i> 发送</button>
+            </form>
+            
+
+            
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div class="dash-panel">
+        <div class="panel-head"><i class="bi bi-folder2-open"></i><span>文件列表</span><span class="badge bg-secondary ms-2">0</span></div>
+        
+        <div class="empty-state py-3"><i class="bi bi-folder2-open text-muted"></i><p>暂无文件</p></div>
+        
+    </div>
+</div>
+
+            </div>
+        </main>
+    </div>
+    
+
+    <script src="/static/js/bootstrap.bundle.min.js?v=3.3.0"></script>
+    <script>
+    // 心跳：每45秒告诉服务器我在线
+    
+    setInterval(function() {
+        fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
+    }, 45000);
+    fetch('/chat/heartbeat', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).catch(function(){});
+    
+
+    // ── Sidebar interactivity ──
+    (function() {
+        var sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        var collapseBtn = document.getElementById('sidebarCollapse');
+        var toggleBtn = document.getElementById('sidebarToggle');
+        var topbarToggle = document.getElementById('topbarToggle');
+        var overlay = document.getElementById('sidebarOverlay');
+        var searchInput = sidebar.querySelector('.sidebar-search-input');
+        var isMobile = function() { return window.innerWidth < 768; };
+
+        // Desktop collapse (slides off-screen)
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                try { localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed') ? '1' : ''); } catch(e) {}
+            });
+        }
+
+        // Topbar hamburger: on mobile opens drawer, on desktop expands collapsed sidebar
+        function handleToggle() {
+            if (isMobile()) {
+                sidebar.classList.add('open');
+                if (overlay) overlay.classList.add('show');
+            } else {
+                sidebar.classList.remove('collapsed');
+                try { localStorage.setItem('sidebar-collapsed', ''); } catch(e) {}
+            }
+        }
+        function closeSidebar() { sidebar.classList.remove('open'); if (overlay) overlay.classList.remove('show'); }
+
+        if (toggleBtn) toggleBtn.addEventListener('click', handleToggle);
+        if (topbarToggle) topbarToggle.addEventListener('click', handleToggle);
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+
+        // Restore collapse state on desktop
+        if (!isMobile()) {
+            try {
+                if (localStorage.getItem('sidebar-collapsed') === '1') {
+                    sidebar.classList.add('collapsed');
+                }
+            } catch(e) {}
+        }
+
+        // Close mobile drawer on resize to desktop
+        window.addEventListener('resize', function() {
+            if (!isMobile()) closeSidebar();
+        });
+
+        // Escape closes mobile drawer
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) closeSidebar();
+        });
+
+        // Ctrl+K focuses search
+        if (searchInput) {
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    sidebar.classList.remove('collapsed');
+                    try { localStorage.setItem('sidebar-collapsed', ''); } catch(e) {}
+                    searchInput.focus();
+                }
+            });
+        }
+
+        // Search filtering
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var q = this.value.toLowerCase().trim();
+                var items = sidebar.querySelectorAll('.nav-item');
+                var dividers = sidebar.querySelectorAll('.nav-divider');
+                items.forEach(function(item) {
+                    var text = item.querySelector('.nav-text');
+                    if (!text) return;
+                    item.style.display = (!q || text.textContent.toLowerCase().includes(q)) ? '' : 'none';
+                });
+                dividers.forEach(function(d) { d.style.display = (!q) ? '' : 'none'; });
+            });
+        }
+    })();
+    </script>
+    <script src="/static/js/app.js?v=3.3.0"></script>
+    
+<script>
+const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+
+let currentXhr = null;
+let currentUploadId = null;
+let cancelled = false;
+
+function cancelUpload() {
+    cancelled = true;
+    if (currentXhr) { currentXhr.abort(); currentXhr = null; }
+    if (currentUploadId) {
+        // Tell server to clean up temp chunks
+        fetch('/chat/cancel-upload?upload_id=' + currentUploadId, { method: 'POST' });
+        currentUploadId = null;
+    }
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('upCancel').style.display = 'none';
+}
+
+function uploadWithProgress(form, event) {
+    var fileInput = form.querySelector('input[type="file"]');
+    var file = fileInput.files[0];
+    if (!file) return true;
+    event.preventDefault();
+
+    cancelled = false;
+    currentXhr = null;
+    currentUploadId = null;
+
+    var progress = document.getElementById('uploadProgress');
+    var bar = document.getElementById('upBar');
+    var filename = document.getElementById('upFilename');
+    var speed = document.getElementById('upSpeed');
+    var sent = document.getElementById('upSent');
+    var total = document.getElementById('upTotal');
+    var cancelBtn = document.getElementById('upCancel');
+
+    progress.style.display = 'block';
+    cancelBtn.style.display = '';
+    filename.textContent = file.name;
+    total.textContent = formatSize(file.size);
+    bar.style.width = '0%';
+    bar.classList.remove('bg-success', 'bg-danger');
+    speed.textContent = '0%';
+    sent.textContent = '0 KB';
+
+    var targetType = form.querySelector('[name="p2p_file"]') ? 'p2p' : 'shared';
+    var receiverId = form.querySelector('[name="receiver_id"]')?.value || 0;
+    var description = form.querySelector('[name="description"]')?.value || '';
+
+    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    var uploadId = crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+    currentUploadId = uploadId;
+    var startTime = Date.now();
+    var uploaded = 0;
+
+    function uploadChunk(index) {
+        if (cancelled) return;
+        if (index >= totalChunks) return;
+
+        var start = index * CHUNK_SIZE;
+        var end = Math.min(start + CHUNK_SIZE, file.size);
+        var blob = file.slice(start, end);
+
+        var fd = new FormData();
+        fd.append('upload_id', uploadId);
+        fd.append('chunk_index', index);
+        fd.append('total_chunks', totalChunks);
+        fd.append('original_name', file.name);
+        fd.append('target_type', targetType);
+        if (targetType === 'p2p') fd.append('receiver_id', receiverId);
+        if (targetType === 'shared') fd.append('description', description);
+        fd.append('file', blob, 'chunk_' + index);
+
+        currentXhr = new XMLHttpRequest();
+        currentXhr.open('POST', '/chat/chunk-upload');
+
+        currentXhr.addEventListener('load', function() {
+            if (cancelled) return;
+            currentXhr = null;
+            if (this.status >= 200 && this.status < 400) {
+                var resp = JSON.parse(this.responseText);
+                if (resp.ok) {
+                    uploaded += (end - start);
+                    var pct = Math.round(uploaded / file.size * 100);
+                    bar.style.width = pct + '%';
+                    sent.textContent = formatSize(uploaded);
+
+                    var elapsed = (Date.now() - startTime) / 1000;
+                    if (elapsed > 0) {
+                        speed.textContent = formatSpeed(uploaded / elapsed) + ' · ' + pct + '%';
+                    }
+
+                    if (resp.status === 'complete') {
+                        bar.classList.add('bg-success');
+                        bar.style.width = '100%';
+                        speed.textContent = formatSize(file.size) + ' 上传完成';
+                        cancelBtn.style.display = 'none';
+                        currentUploadId = null;
+                        setTimeout(function() { progress.style.display = 'none'; }, 2000);
+                        setTimeout(function() { window.location.reload(); }, 800);
+                        return;
+                    }
+                    uploadChunk(index + 1);
+                } else {
+                    speed.textContent = resp.error || '上传失败';
+                    bar.classList.add('bg-danger');
+                    cancelBtn.style.display = 'none';
+                }
+            } else {
+                speed.textContent = '错误（片' + (index + 1) + '/' + totalChunks + '）';
+                bar.classList.add('bg-danger');
+                cancelBtn.style.display = 'none';
+            }
+        });
+
+        currentXhr.addEventListener('error', function() {
+            if (cancelled) return;
+            currentXhr = null;
+            speed.textContent = '网络错误（片' + (index + 1) + '/' + totalChunks + '）';
+            bar.classList.add('bg-danger');
+            cancelBtn.style.display = 'none';
+        });
+
+        currentXhr.send(fd);
+    }
+
+    uploadChunk(0);
+    return false;
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1048576 * 1024) return (bytes / 1048576).toFixed(2) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+
+function formatSpeed(bytesPerSec) {
+    if (bytesPerSec < 1048576) return (bytesPerSec / 1024).toFixed(1) + ' KB/s';
+    return (bytesPerSec / 1048576).toFixed(1) + ' MB/s';
+}
+</script>
+
+</body>
+</html>
