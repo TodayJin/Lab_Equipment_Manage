@@ -6,23 +6,19 @@
 {% block content %}
 <div class="filter-bar">
     <form method="GET" class="row g-2 align-items-end" id="filterForm">
-        <div class="col-md-3">
+        <div class="col-md-5">
             <div class="input-group" id="quickSearch">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" name="search" class="form-control" placeholder="输入即搜..." value="{{ search }}" autocomplete="off">
+                <input type="text" name="search" class="form-control" placeholder="搜索器材名称、型号..." value="{{ search }}" autocomplete="off">
             </div>
         </div>
-        <div class="col-md-2">
-            <select name="category_id" class="form-select">
+        <div class="col-md-3">
+            <select name="category_id" class="form-select" onchange="this.form.submit()">
                 <option value="0">全部分类</option>
                 {% for cat in categories %}
                 <option value="{{ cat.id }}" {% if current_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
                 {% endfor %}
             </select>
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-outline-primary">筛选</button>
-            <a href="{{ url_for('equipment.index') }}" class="btn btn-outline-secondary">重置</a>
         </div>
         <div class="col-auto ms-auto">
             <a href="{{ url_for('equipment.new') }}" class="btn btn-primary">

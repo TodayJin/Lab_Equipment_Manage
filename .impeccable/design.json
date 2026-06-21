@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-21T18:00:00Z",
+  "title": "Design System: LabManager",
+  "extensions": {
+    "colorMeta": {
+      "quantum-glow":  { "role": "primary",  "displayName": "量子辉光", "canonical": "#8C57FF", "tonalRamp": ["#1a0033","#2d0057","#4a1a8c","#6c3ac7","#8C57FF","#a87dff","#c4a3ff","#d9c6ff"] },
+      "quantum-deep":  { "role": "primary",  "displayName": "量子深色", "canonical": "#7E4EE6", "tonalRamp": ["#120033","#240066","#3d1a99","#5f33cc","#7E4EE6","#9c75ff","#b899ff"," "#d4c4ff"] },
+      "quantum-soft":  { "role": "accent",   "displayName": "量子柔光", "canonical": "#A379FF", "tonalRamp": ["#1f0050","#3a1a80","#5e3ab0","#805ad4","#A379FF"," "#c1a6ff"," "#dfd0ff"," "#eee6ff"] },
+      "success-green": { "role": "secondary","displayName": "成功绿",   "canonical": "#34C759", "tonalRamp": ["#003310","#00551a"," "#008024"," "#28a845"," "#34C759"," "#5ddb77"," "#8aeb9c"," "#b8f5c4"] },
+      "warning-orange":{ "role": "secondary","displayName": "警告橙",   "canonical": "#FF9500", "tonalRamp": ["#331d00"," "#663b00"," "#995900"," "#cc7700"," "#FF9500"," "#ffad33"," "#ffc366"," "#ffda99"] },
+      "danger-red":    { "role": "secondary","displayName": "危险红",   "canonical": "#FF3B30", "tonalRamp": [" "#330500"," "#660a00"," "#990f00"," "#cc1400"," "#FF3B30"," "#ff6b63"," "#ff9c97"," "#ffcdcc"] },
+      "surface-light": { "role": "neutral",  "displayName": "亮表面",   "canonical": "#F2F2F7", "tonalRamp": [" "#d9d9df"," "#dfdfe5"," "#e6e6ed"," "#ececf3"," "#F2F2F7"," "#f7f7fa"," "#fbfbfc"," "#fdfdfe"] },
+      "surface-dark":  { "role": "neutral",  "displayName": "深表面",   "canonical": "#1C1C1E", "tonalRamp": [" "#0a0a0b"," "#0f0f10"," "#141416"," "#19191c"," "#1C1C1E"," "#38383a"," "#545457"," "#717173"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "正文", "purpose": "全局正文、表格内容、按钮标签" }
+    },
+    "shadows": [
+      { "name": "ambient-sm", "value": "0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.02)", "purpose": "顶栏、过滤栏" },
+      { "name": "ambient-md", "value": "0 4px 12px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.03)", "purpose": "面板、卡片、表格容器" },
+      { "name": "ambient-lg", "value": "0 8px 24px rgba(0,0,0,.08), 0 4px 8px rgba(0,0,0,.04)", "purpose": "弹窗模态框" }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(.25,.1,.25,1)", "purpose": "全局过渡默认曲线" },
+      { "name": "btn-bounce", "value": "btnBounce 0.35s ease", "purpose": "按钮按压弹性回弹" }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "767px" },
+      { "name": "small", "value": "576px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "主按钮",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "主要操作：新增器材、保存、搜索。全圆角胶囊，量子辉光背景。",
+      "html": "<button class=\"ds-btn-primary\">新增器材</button>",
+      "css": ".ds-btn-primary { background: #8C57FF; color: #fff; border: none; border-radius: 999px; padding: 10px 24px; font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.3s; } .ds-btn-primary:hover { background: #7E4EE6; transform: scale(1.03); } .ds-btn-primary:active { animation: btnBounce 0.35s ease; }"
+    },
+    {
+      "name": "玻璃按钮",
+      "kind": "button",
+      "refersTo": "button-glass",
+      "description": "次要操作：编辑、签退、重置。毛玻璃半透明底 + 玻璃折射高光。",
+      "html": "<button class=\"ds-btn-glass\">编辑</button>",
+      "css": ".ds-btn-glass { position: relative; border-radius: 999px; padding: 10px 24px; font-size: 15px; font-weight: 600; cursor: pointer; background: rgba(255,255,255,.55); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), inset 1px 2px 0 -1px rgba(255,255,255,.7), 0 1px 3px rgba(0,0,0,.05); transition: transform 0.3s; } .ds-btn-glass:hover { transform: scale(1.03); } .ds-btn-glass:active { animation: btnBounce 0.35s ease; }"
+    },
+    {
+      "name": "面板",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "通用内容容器：仪表盘面板、表格容器、表单卡片。毛玻璃半透明。",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel-head\">面板标题</div><div style=\"padding:20px\">内容</div></div>",
+      "css": ".ds-panel { border-radius: 20px; background: rgba(255,255,255,.72); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,.5); box-shadow: 0 4px 12px rgba(0,0,0,.06); overflow: hidden; } .ds-panel-head { padding: 18px 24px; font-weight: 650; font-size: 16px; border-bottom: 1px solid rgba(0,0,0,.06); }"
+    },
+    {
+      "name": "输入框",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "搜索框、表单输入、下拉选择。聚焦有主题色光环。",
+      "html": "<input class=\"ds-input\" placeholder=\"搜索…\">",
+      "css": ".ds-input { border-radius: 14px; padding: 10px 16px; font-size: 15px; border: 1.5px solid rgba(0,0,0,.1); background: rgba(255,255,255,.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); outline: none; transition: all 0.3s; } .ds-input:focus { border-color: #8C57FF; box-shadow: 0 0 0 4px rgba(140,87,255,.1); background: rgba(255,255,255,.8); }"
+    },
+    {
+      "name": "统计卡片",
+      "kind": "card",
+      "refersTo": "stat-card",
+      "description": "仪表盘顶部数据卡片：四列网格，图标 + 数值 + 标签。",
+      "html": "<div class=\"ds-stat-card\"><div class=\"ds-stat-icon\">📦</div><div><div class=\"ds-stat-val\">128</div><div class=\"ds-stat-label\">器材总数</div></div></div>",
+      "css": ".ds-stat-card { border-radius: 20px; padding: 28px 24px; background: rgba(255,255,255,.72); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,.5); box-shadow: 0 4px 12px rgba(0,0,0,.06); display: flex; align-items: center; gap: 16px; } .ds-stat-icon { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 29px; } .ds-stat-val { font-size: 34px; font-weight: 700; color: #1C1C1E; } .ds-stat-label { font-size: 14px; color: rgba(60,60,67,.6); font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "轨道工作站",
+    "overview": "实验室公共电脑上的器材管理系统，设计语言像一个模块化的空间站控制面板。界面由半透明面板层叠而成，背景有持续运行的粒子模拟。每一个操作即时响应。深色模式是默认姿态，五套主题色像工作站可切换的 HUD 配色。",
+    "keyCharacteristics": [ "毛玻璃面板层叠", "全圆角胶囊按钮 + 弹性反馈", "粒子背景动效持续运行", "AJAX 局部更新零等待", "五种 HUD 配色一键切换" ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "主色占比不超过任何屏幕的 15%。侧边栏一项高亮、一个主按钮、一条顶部渐变线，就够。", "section": "colors" },
+      { "name": "The Glass-Over-Flat Rule", "body": "所有容器面板必须有 backdrop-filter 毛玻璃效果。纯色面板仅在极简场景使用。", "section": "elevation" }
+    ],
+    "dos": [
+      "所有删除/撤销/签退操作用 AJAX + Toast 反馈，不整页刷新",
+      "表格容器用 20px 圆角 + overflow hidden 裁切直角内容",
+      "深色模式优先，浅色作为备选",
+      "按钮使用全圆角胶囊（999px）+ 按压弹性动画",
+      "面板保持 backdrop-filter 毛玻璃效果贯穿全局"
+    ],
+    "donts": [
+      "使用直角表格或直角卡片（企业 OA 系统风格）",
+      "整页刷新任何操作（传统 form POST 提交）",
+      "使用纯白不透明面板",
+      "在卡片上同时使用 1px 边框 + 大阴影（ghost-card 反模式）",
+      "圆角超过 24px（卡片上限）",
+      "使用渐变文字（background-clip: text）"
+    ]
+  }
+}

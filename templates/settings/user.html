@@ -26,14 +26,49 @@
 
     <hr>
 
-    <!-- 每页显示数量 — 需要保存 -->
-    <form method="POST" id="pageForm">
-        <div class="mb-4">
+    <!-- 配色主题 -->
+    <div class="mb-4">
+        <label class="form-label fw-semibold mb-3">
+            <i class="bi bi-palette me-2"></i>配色主题
+        </label>
+        <div class="d-flex gap-2 flex-wrap" id="themePicker">
+            <label class="theme-option" data-theme="purple" style="cursor:pointer">
+                <input type="radio" name="color_theme" value="purple" class="d-none" {% if color_theme == 'purple' %}checked{% endif %}>
+                <span class="theme-swatch" style="background:linear-gradient(135deg,#8C57FF,#A379FF)"></span>
+                <small>紫</small>
+            </label>
+            <label class="theme-option" data-theme="blue" style="cursor:pointer">
+                <input type="radio" name="color_theme" value="blue" class="d-none" {% if color_theme == 'blue' %}checked{% endif %}>
+                <span class="theme-swatch" style="background:linear-gradient(135deg,#3B82F6,#60A5FA)"></span>
+                <small>蓝</small>
+            </label>
+            <label class="theme-option" data-theme="green" style="cursor:pointer">
+                <input type="radio" name="color_theme" value="green" class="d-none" {% if color_theme == 'green' %}checked{% endif %}>
+                <span class="theme-swatch" style="background:linear-gradient(135deg,#10B981,#34D399)"></span>
+                <small>绿</small>
+            </label>
+            <label class="theme-option" data-theme="orange" style="cursor:pointer">
+                <input type="radio" name="color_theme" value="orange" class="d-none" {% if color_theme == 'orange' %}checked{% endif %}>
+                <span class="theme-swatch" style="background:linear-gradient(135deg,#F59E0B,#FBBF24)"></span>
+                <small>橙</small>
+            </label>
+            <label class="theme-option" data-theme="rose" style="cursor:pointer">
+                <input type="radio" name="color_theme" value="rose" class="d-none" {% if color_theme == 'rose' %}checked{% endif %}>
+                <span class="theme-swatch" style="background:linear-gradient(135deg,#EC4899,#F472B6)"></span>
+                <small>粉</small>
+            </label>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- 每页显示数量 — 即时保存 -->
+    <div class="mb-4">
             <label class="form-label fw-semibold">
                 <i class="bi bi-list-ol me-2"></i>每页显示数量
             </label>
             <p class="text-muted small mb-2">设置列表页面每页显示的数据条数</p>
-            <select class="form-select" name="items_per_page">
+            <select class="form-select" name="items_per_page" onchange="savePageSize(this.value)">
                 <option value="10" {% if items_per_page == 10 %}selected{% endif %}>10 条</option>
                 <option value="15" {% if items_per_page == 15 %}selected{% endif %}>15 条</option>
                 <option value="20" {% if items_per_page == 20 %}selected{% endif %}>20 条</option>
@@ -45,16 +80,53 @@
         <hr>
 
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">保存设置</button>
             <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-key"></i> 修改密码
             </a>
         </div>
-    </form>
+    </div>
 </div>
 
 {% block extra_scripts %}
+<style>
+.theme-option{text-align:center;padding:8px 12px;border-radius:12px;border:2px solid transparent;transition:all .2s}
+.theme-option.selected{border-color:var(--pri);background:rgba(140,87,255,.06)}
+.theme-swatch{display:block;width:36px;height:36px;border-radius:50%;margin:0 auto 4px;box-shadow:0 2px 6px rgb(0 0 0 / .12);transition:transform .2s}
+.theme-option:hover .theme-swatch{transform:scale(1.15)}
+.theme-option small{font-size:12px;color:var(--ts)}
+</style>
 <script>
+// 初始化选中状态
+document.querySelectorAll('.theme-option input').forEach(function(r){
+    if(r.checked) r.parentElement.classList.add('selected');
+});
+// 点击切换配色
+document.getElementById('themePicker').addEventListener('click', function(e){
+    var label = e.target.closest('.theme-option');
+    if(!label) return;
+    var theme = label.dataset.theme;
+    document.querySelectorAll('.theme-option').forEach(function(l){l.classList.remove('selected')});
+    label.classList.add('selected');
+    label.querySelector('input').checked = true;
+    document.documentElement.setAttribute('data-theme', theme);
+    // 即时保存
+    fetch('/settings/api', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({color_theme:theme})
+    });
+});
+
+function savePageSize(val) {
+    fetch('/settings/api', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({items_per_page:parseInt(val)})
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.ok) LabToast.show('每页显示 '+val+' 条，已保存', 'success', 2000);
+    });
+}
+
 function toggleDarkMode(checkbox) {
     const dark = checkbox.checked;
     const hint = document.getElementById('dmHint');

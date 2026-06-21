@@ -46,7 +46,7 @@ html.dark .sidebar-mobile-toggle { background: #312D4B; color: rgb(231 227 252 /
 html.dark .topbar { background: #312D4B; }
 html.dark .topbar-toggle { color: rgb(231 227 252 / .5); }
 html.dark .topbar-toggle:hover { background: #3D395B; }
-html.dark .page-title { background: linear-gradient(135deg, rgb(231 227 252 / .95), rgb(231 227 252 / .6)) !important; -webkit-text-fill-color: transparent !important; background-clip: text !important; }
+html.dark .page-title { color: rgb(231 227 252 / .9) !important; }
 
 /* ── Cards & panels ── */
 html.dark .stat-card,
@@ -110,7 +110,7 @@ html.dark .btn-danger { box-shadow: none; }
 html.dark .btn-warning { box-shadow: none; }
 html.dark .btn-outline-secondary { border-color: #4D4970 !important; color: rgb(231 227 252 / .8) !important; }
 html.dark .btn-outline-secondary:hover { background: #4D4970 !important; color: #fff !important; }
-html.dark .btn-outline-primary { border-color: var(--pri) !important; color: #B48AFF !important; }
+html.dark .btn-outline-primary { border-color: var(--pri) !important; color: var(--acc) !important; }
 html.dark .btn-outline-primary:hover { background: var(--pri) !important; color: #fff !important; }
 html.dark .btn-outline-danger { border-color: #FF4C51 !important; color: #FF4C51 !important; }
 html.dark .btn-outline-danger:hover { background: #FF4C51 !important; color: #fff !important; }

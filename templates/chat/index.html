@@ -38,15 +38,11 @@
 </div>
 
 <!-- 输入区 -->
-<div class="chat-input-bar">
-    <form method="POST" action="{{ url_for('chat.send') }}" enctype="multipart/form-data" id="chatForm">
-        <div class="input-group">
-            <textarea name="content" class="form-control" rows="1" placeholder="输入消息..." id="chatInput"></textarea>
-            <label class="btn btn-outline-secondary mb-0" style="border-radius:var(--radius-sm) 0 0 var(--radius-sm)"><i class="bi bi-paperclip"></i><input type="file" name="file" style="display:none" onchange="this.closest('form').submit()"></label>
-            <button class="btn btn-primary"><i class="bi bi-send"></i></button>
-        </div>
+    <form method="POST" action="{{ url_for('chat.send') }}" enctype="multipart/form-data" id="chatForm" style="display:flex;gap:8px;align-items:stretch;margin-top:18px">
+        <textarea name="content" class="form-control" rows="1" placeholder="输入消息..." id="chatInput" style="flex:1;resize:none;border-radius:16px!important;padding:12px 18px!important;font-size:15px"></textarea>
+        <label class="btn btn-outline-secondary d-flex align-items-center" style="border-radius:16px!important;margin:0;cursor:pointer"><i class="bi bi-paperclip"></i><input type="file" name="file" style="display:none" onchange="this.closest('form').submit()"></label>
+        <button class="btn btn-primary d-flex align-items-center" style="border-radius:16px!important;padding:0 20px"><i class="bi bi-send"></i></button>
     </form>
-</div>
 
 <script>
 // Chat input: Enter to submit, but not during IME composition

@@ -61,10 +61,9 @@
     <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" id="ovAvgPerPerson" data-minutes="{{ avg_per_person }}">{{ avg_per_person }} 分钟</div><div class="stat-label">人均在线</div></div></div>
   </div>
 
-  <div class="dash-panel">
-    <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
+  <div class="panel-head"><i class="bi bi-person-lines-fill"></i><span>按人汇总</span><small class="text-muted ms-2">点击成员查看每日明细</small></div>
     {% if person_stats %}
-    <div class="table-container">
+    <div class="table-container mt-3">
       <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
         <tbody id="ovPersonBody">
           {% for name, ps in person_stats.items() %}
@@ -79,7 +78,6 @@
         </tbody>
       </table>
     </div>{% else %}<div class="empty-state"><p>暂无数据</p></div>{% endif %}
-  </div>
 </div>
 
 <!-- ═══ 排名面板 ═══ -->
@@ -118,31 +116,28 @@
 </div>
 
 <!-- 成员详情弹窗 — 使用 Bootstrap Modal -->
-<div class="modal" id="memberModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="time-chips mb-3" id="modalTimeChips">
-          <span class="time-chip" data-period="week">近一周</span>
-          <span class="time-chip active" data-period="month">近一月</span>
-          <span class="time-chip" data-period="2month">近两月</span>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
-          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长</small></div></div>
-          <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均</small></div></div>
-        </div>
-        <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
-        <div class="table-container">
-          <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
-            <tbody id="modalLogBody"></tbody>
-          </table>
-        </div>
-      </div>
+<!-- 成员详情弹窗 -->
+<div class="modal-overlay" id="memberModal" style="display:none" onclick="if(event.target===this)closeMemberDetail()">
+  <div class="modal-card" style="max-width:800px">
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold"><i class="bi bi-person-circle"></i> <span id="modalMemberName"></span> — 每日详情</h5>
+      <button class="modal-close" onclick="closeMemberDetail()">&times;</button>
+    </div>
+    <div class="time-chips mb-3" id="modalTimeChips">
+      <span class="time-chip" data-period="week">近一周</span>
+      <span class="time-chip active" data-period="month">近一月</span>
+      <span class="time-chip" data-period="2month">近两月</span>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--primary)" id="modalDays">—</div><small class="text-muted">到勤天数</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="modalTotal">—</div><small class="text-muted">总时长</small></div></div>
+      <div class="col-4"><div class="border rounded-3 p-3 text-center"><div style="font-size:20px;font-weight:700;color:var(--warning)" id="modalAvg">—</div><small class="text-muted">日均</small></div></div>
+    </div>
+    <canvas id="modalDailyChart" height="180" class="mb-3"></canvas>
+    <div class="table-container">
+      <table class="table table-sm"><thead><tr><th>日期</th><th>签到</th><th>签退</th><th>时长</th></tr></thead>
+        <tbody id="modalLogBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -152,10 +147,10 @@
 <script>
 // ═══════════════ State ═══════════════
 let currentPeriod = 'month';
-let currentTab = '{{ view }}' || 'overview';
+let currentTab = '{{ view }}';
+if (!currentTab || currentTab === 'None' || currentTab === 'overview') currentTab = 'overview';
 let currentMemberName = null;
 let currentMemberId = null;
-let bsModal = null;
 
 function fmtTime(mins) {
   if (mins == null || isNaN(mins) || mins <= 0) return '—';
@@ -236,32 +231,35 @@ function refreshCurrentTab() {
 }
 
 // ═══════════════ Overview refresh ═══════════════
+let _lastOverviewRange = '';
+
 function refreshOverview() {
   const range = getDateRange();
-  // Show subtle loading state
-  document.getElementById('ovPersonCount').textContent = '…';
-  document.getElementById('ovTotalDays').textContent = '…';
-  document.getElementById('ovAvgDaily').textContent = '…';
-  document.getElementById('ovAvgPerPerson').textContent = '…';
+  const key = range.from + '|' + range.to;
+  if (key === _lastOverviewRange) return;
+  _lastOverviewRange = key;
 
   fetch(`/lab/checkin/stats?json=overview&from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`)
-    .then(r => r.json())
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(data => {
       if (data.error) { console.error(data.error); return; }
       // Update stat cards
       document.getElementById('ovPersonCount').textContent = data.person_count;
       document.getElementById('ovTotalDays').textContent = data.total_days;
-      document.getElementById('ovAvgDaily').textContent = fmtTime(data.avg_daily);
-      document.getElementById('ovAvgDaily').dataset.minutes = data.avg_daily;
-      document.getElementById('ovAvgPerPerson').textContent = fmtTime(data.avg_per_person);
-      document.getElementById('ovAvgPerPerson').dataset.minutes = data.avg_per_person;
+      const avgDaily = data.avg_daily || 0;
+      const avgPer = data.avg_per_person || 0;
+      document.getElementById('ovAvgDaily').textContent = fmtTime(avgDaily);
+      document.getElementById('ovAvgDaily').dataset.minutes = avgDaily;
+      document.getElementById('ovAvgPerPerson').textContent = fmtTime(avgPer);
+      document.getElementById('ovAvgPerPerson').dataset.minutes = avgPer;
 
       // Update person summary table
       const tbody = document.getElementById('ovPersonBody');
       if (!data.persons || data.persons.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>暂无数据</p></div></td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>暂无数据</p></div></td></tr>';
         return;
       }
+      if (!tbody) return;
       tbody.innerHTML = data.persons.map(p => {
         const name = (p.name || '').replace(/'/g, "\\'");
         return `<tr class="member-row" onclick="openMemberDetail('${name}', ${p.user_id})" title="点击查看 ${name} 的每日明细">
@@ -273,14 +271,21 @@ function refreshOverview() {
         </tr>`;
       }).join('');
     })
-    .catch(() => {});
+    .catch(() => {
+      LabToast.show('数据加载失败，请刷新重试', 'danger', 3000);
+    });
 }
 
 // ═══════════════ Ranking ═══════════════
+let _lastRankingRange = '';
+
 function renderRanking() {
-  const list = document.getElementById('rankingList');
-  list.innerHTML = '<div class="empty-state py-4"><div class="spinner-border text-primary mb-2" role="status"></div><p>加载中…</p></div>';
   const range = getDateRange();
+  const key = range.from + '|' + range.to;
+  if (key === _lastRankingRange) return;
+  _lastRankingRange = key;
+
+  const list = document.getElementById('rankingList');
   fetch(`/lab/checkin/stats?json=ranking&from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`)
     .then(r => r.json())
     .then(data => {
@@ -308,16 +313,22 @@ function renderRanking() {
           <div class="ranking-total">${fmtTime(m.total_minutes)}<div class="ranking-pct">${pct}%</div></div>
         </div>`;
       }).join('');
+      document.getElementById('rankingPeriodLabel').textContent =
+        {week:'近一周',month:'近一月','2month':'近两月','3month':'近三月',custom:'自定义'}[currentPeriod] || '近一月';
     })
     .catch(() => {
-      list.innerHTML = '<div class="empty-state py-4"><p>加载失败，请重试</p></div>';
+      if (!list.querySelector('.ranking-card')) list.innerHTML = '<div class="empty-state py-4"><p>加载失败，请重试</p></div>';
     });
-  document.getElementById('rankingPeriodLabel').textContent =
-    {week:'近一周',month:'近一月','2month':'近两月','3month':'近三月',custom:'自定义'}[currentPeriod] || '近一月';
 }
 
 // ═══════════════ Daily charts ═══════════════
+let _lastDailyRange = '';
+
 function loadDailyCharts(range) {
+  const key = range.from + '|' + range.to;
+  if (key === _lastDailyRange) return;
+  _lastDailyRange = key;
+
   fetch(`/lab/checkin/stats?json=chart&from=${range.from}&to=${range.to}`)
   .then(r => r.json()).then(data => {
     const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#6366f1'];
@@ -350,10 +361,16 @@ function loadDailyCharts(range) {
 function openMemberDetail(name, userId) {
   currentMemberName = name;
   currentMemberId = userId;
+  var el = document.getElementById('memberModal');
+  if (!el) return;
+  document.body.appendChild(el);
   document.getElementById('modalMemberName').textContent = name;
-  if (!bsModal) bsModal = new bootstrap.Modal(document.getElementById('memberModal'));
-  bsModal.show();
+  el.style.display = 'flex';
   loadMemberDetail(userId);
+}
+function closeMemberDetail() {
+  var el = document.getElementById('memberModal');
+  if (el) el.style.display = 'none';
 }
 
 document.getElementById('modalTimeChips').addEventListener('click', function(e) {
@@ -369,11 +386,6 @@ function loadMemberDetail(userId, period) {
     document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>无法获取用户信息</p></div></td></tr>';
     return;
   }
-  // 显示加载状态
-  document.getElementById('modalDays').textContent = '…';
-  document.getElementById('modalTotal').textContent = '…';
-  document.getElementById('modalAvg').textContent = '…';
-  document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中…</div></td></tr>';
 
   let range;
   if (period) {
@@ -460,6 +472,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const mins = parseInt(el.dataset.minutes);
     if (!isNaN(mins)) el.textContent = fmtTime(mins);
   });
+  // 同步日期输入框与当前激活的时间芯片
+  updateDateInputs();
 });
 </script>
 {% endblock %}

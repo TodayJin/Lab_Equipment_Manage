@@ -30,7 +30,7 @@ def index():
         return redirect(url_for('settings_routes.index'))
 
     return render_template('settings/user.html', dark_mode=stg.dark_mode,
-                           items_per_page=stg.items_per_page)
+                           items_per_page=stg.items_per_page, color_theme=stg.color_theme)
 
 
 @settings_bp.route('/api', methods=['POST'])
@@ -42,4 +42,10 @@ def api_save():
     if 'dark_mode' in data:
         stg.dark_mode = bool(data['dark_mode'])
         db.session.commit()
-    return jsonify({'ok': True, 'dark_mode': stg.dark_mode})
+    if 'color_theme' in data:
+        stg.color_theme = data['color_theme']
+        db.session.commit()
+    if 'items_per_page' in data:
+        stg.items_per_page = int(data['items_per_page'])
+        db.session.commit()
+    return jsonify({'ok': True, 'dark_mode': stg.dark_mode, 'color_theme': stg.color_theme, 'items_per_page': stg.items_per_page})

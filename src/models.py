@@ -52,6 +52,8 @@ class UserSettings(db.Model):
     dark_mode = db.Column(db.Boolean, default=False)
     items_per_page = db.Column(db.Integer, default=15)
     last_read_chat_id = db.Column(db.Integer, default=0)
+    color_theme = db.Column(db.String(20), default='purple')  # purple / blue / green / orange / rose
+    quick_links = db.Column(db.Text, default='[]')  # JSON: [{"name":"...","url":"..."},...]
 
     def to_dict(self):
         return {

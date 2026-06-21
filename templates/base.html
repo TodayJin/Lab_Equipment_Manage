@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="{% if current_user.is_authenticated and current_user.dark_mode_enabled %}dark{% endif %}">
+<html lang="zh-CN" class="{% if current_user.is_authenticated and current_user.dark_mode_enabled %}dark{% endif %}" data-theme="{{ color_theme }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,12 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <canvas id="particleCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;opacity:1;transition:opacity .5s"></canvas>
+    <canvas id="glowCanvas" style="position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .5s"></canvas>
+    <div style="position:fixed;bottom:24px;right:24px;z-index:1000;display:flex;gap:8px" id="bgSwitcher">
+      <button class="bg-switch-btn active" data-bg="particle" title="粒子网络"><i class="bi bi-grid-3x3-gap"></i></button>
+      <button class="bg-switch-btn" data-bg="glow" title="光影流动"><i class="bi bi-stars"></i></button>
+    </div>
     {% if current_user.is_authenticated %}
     <div class="layout">
         <button class="sidebar-mobile-toggle" id="sidebarToggle" aria-label="切换侧边栏">
@@ -23,13 +29,13 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-inner">
                 <div class="sidebar-header">
-                    <div class="sidebar-logo">
+                    <a href="{{ url_for('home.index') }}" class="sidebar-logo" style="text-decoration:none">
                         <div class="sidebar-logo-icon"><i class="bi bi-cpu"></i></div>
                         <div class="sidebar-logo-text">
                             <span class="sidebar-title">电子技术创新实验室</span>
                             <span class="sidebar-subtitle">器材管理系统</span>
                         </div>
-                    </div>
+                    </a>
                     <button class="sidebar-collapse-btn" id="sidebarCollapse" title="折叠/展开">
                         <i class="bi bi-chevron-left"></i>
                     </button>
@@ -40,6 +46,10 @@
                     <span class="sidebar-search-hint"><kbd>K</kbd></span>
                 </div>
                 <nav class="sidebar-nav">
+                    <a href="{{ url_for('home.index') }}" class="nav-item {{ 'active' if request.path == '/' }}" title="首页">
+                        <div class="nav-icon"><i class="bi bi-house"></i></div>
+                        <span class="nav-text">首页</span>
+                    </a>
                     <a href="{{ url_for('dashboard.index') }}" class="nav-item {{ 'active' if request.endpoint == 'dashboard.index' }}" title="仪表盘">
                         <div class="nav-icon"><i class="bi bi-speedometer2"></i></div>
                         <span class="nav-text">仪表盘</span>
@@ -265,6 +275,7 @@
         }
     })();
     </script>
+    <script src="{{ url_for('static', filename='js/anime.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}?v=3.3.0"></script>
     {% block extra_scripts %}{% endblock %}
 </body>

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}首页 - 电子技术创新实验室{% endblock %}
+{% block page_title %}首页{% endblock %}
+
+{% block extra_head %}
+<style>
+.home-wrapper{max-width:720px;margin:0 auto;padding-top:60px;text-align:center;position:relative;z-index:2}
+.home-logo{font-size:48px;color:var(--pri);margin-bottom:8px}
+.home-title{font-size:26px;font-weight:800;color:var(--tp);margin-bottom:4px;letter-spacing:-.5px}
+.home-subtitle{font-size:14px;color:var(--ts);margin-bottom:36px}
+
+.search-box{display:flex;align-items:center;gap:0;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgb(46 38 61 / .1),0 1px 4px rgb(46 38 61 / .06);border:2px solid transparent;transition:all .3s}
+.search-box:focus-within{border-color:var(--pri);box-shadow:0 6px 32px rgba(140,87,255,.15)}
+html.dark .search-box{background:#2D2940}
+html.dark .search-input{color:rgb(231 227 252 / .9)}
+html.dark .search-input::placeholder{color:rgb(231 227 252 / .3)}
+.search-icon{padding:0 0 0 20px;font-size:20px;color:var(--ts);flex-shrink:0}
+.search-input{flex:1;border:none;padding:16px 12px;font-size:16px;outline:none;background:transparent;color:var(--tp)}
+.search-input::placeholder{color:var(--td)}
+.search-btn{padding:12px 24px;margin:4px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--pri),var(--prib));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;white-space:nowrap}
+.search-btn:hover{transform:scale(1.03);box-shadow:0 4px 16px rgba(140,87,255,.3)}
+
+.quick-links-section{margin-top:48px}
+.quick-links-title{font-size:14px;font-weight:700;color:var(--ts);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+.quick-links-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.quick-link-card{display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:14px;background:#fff;border:1px solid rgb(46 38 61 / .06);box-shadow:0 2px 8px rgb(46 38 61 / .04);text-decoration:none;color:var(--tp);font-size:14px;font-weight:500;transition:all .25s;min-width:140px;justify-content:center}
+.quick-link-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgb(46 38 61 / .1);border-color:var(--pri);color:var(--pri)}
+.quick-link-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.quick-link-add{border:2px dashed rgb(46 38 61 / .15);background:transparent;color:var(--ts);cursor:pointer}
+.quick-link-add:hover{border-color:var(--pri);color:var(--pri);background:rgba(140,87,255,.04)}
+.quick-link-del{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--ts);cursor:pointer;font-size:14px;display:none;line-height:1;padding:0;transition:all .15s;margin-left:-6px}
+.quick-link-card:hover .quick-link-del{display:flex;align-items:center;justify-content:center}
+.quick-link-del:hover{background:var(--dan);color:#fff}
+html.dark .quick-link-card{background:rgba(49,45,75,.6);border-color:rgb(255 255 255 / .06);color:rgb(231 227 252 / .8)}
+html.dark .quick-link-card:hover{border-color:var(--pri);color:var(--acc);background:rgba(49,45,75,.8)}
+html.dark .quick-link-add{border-color:rgb(255 255 255 / .12);color:rgb(231 227 252 / .4)}
+html.dark .quick-link-add:hover{border-color:var(--pri);color:var(--pri)}
+
+.link-edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+.link-edit-card{background:#fff;border-radius:16px;padding:28px;width:90%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.link-edit-card h5{margin:0 0 20px;font-size:17px;font-weight:700}
+.link-edit-card input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid rgb(46 38 61 / .14);font-size:14px;margin-bottom:12px;outline:none}
+.link-edit-card input:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(140,87,255,.1)}
+.link-edit-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+.search-wrapper{position:relative;max-width:620px;margin:0 auto}
+.search-suggestions{position:absolute;top:100%;left:0;right:0;margin-top:6px;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgb(46 38 61 / .14);overflow:hidden;z-index:100;text-align:left}
+.search-suggest-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;font-size:14px;color:var(--tp);transition:background .15s}
+.search-suggest-item:hover,.search-suggest-item.active{background:rgba(140,87,255,.06)}
+.search-suggest-item i{color:var(--ts);font-size:14px;flex-shrink:0}
+html.dark .search-suggestions{background:#312D4B}
+html.dark .search-suggest-item{color:rgb(231 227 252 / .9)}
+html.dark .search-suggest-item:hover,html.dark .search-suggest-item.active{background:rgba(140,87,255,.12)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-wrapper">
+  <div class="home-logo"><i class="bi bi-cpu"></i></div>
+  <h1 class="home-title">电子技术创新实验室</h1>
+  <p class="home-subtitle">器材管理 · 每日签到 · 数据统计</p>
+
+  <div class="search-wrapper">
+  <form class="search-box" onsubmit="doSearch(event)" autocomplete="off">
+    <span class="search-icon"><i class="bi bi-search"></i></span>
+    <input type="search" class="search-input" id="searchInput" placeholder="Bing 搜索…" autofocus autocomplete="off" name="q">
+    <button type="submit" class="search-btn"><i class="bi bi-search"></i> 搜索</button>
+  </form>
+  <div class="search-suggestions" id="searchSuggestions" style="display:none"></div>
+  </div>
+
+  <div class="quick-links-section">
+    <div class="quick-links-title">快捷访问</div>
+    <div class="quick-links-grid" id="linksGrid">
+      <button class="quick-link-card quick-link-add" onclick="addLink()">
+        <i class="bi bi-plus-lg"></i> 添加
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/anime.min.js') }}"></script>
+<script>
+function doSearch(e){
+  e.preventDefault();
+  var q = document.getElementById('searchInput').value.trim();
+  if(q) window.open('https://www.bing.com/search?q='+encodeURIComponent(q),'_blank');
+  hideSuggestions();
+}
+
+var suggestTimer = null;
+var suggestIdx = -1;
+document.getElementById('searchInput').addEventListener('input', function(){
+  clearTimeout(suggestTimer);
+  var q = this.value.trim();
+  if(!q){hideSuggestions();return}
+  suggestTimer = setTimeout(function(){fetchSuggestions(q)}, 200);
+});
+document.getElementById('searchInput').addEventListener('keydown', function(e){
+  var items = document.querySelectorAll('.search-suggest-item');
+  if(e.key==='ArrowDown'){e.preventDefault();suggestIdx=Math.min(suggestIdx+1,items.length-1);updateActive(items)}
+  else if(e.key==='ArrowUp'){e.preventDefault();suggestIdx=Math.max(suggestIdx-1,-1);updateActive(items)}
+  else if(e.key==='Escape'){hideSuggestions()}
+});
+function updateActive(items){items.forEach(function(item,i){item.classList.toggle('active',i===suggestIdx)})}
+function fetchSuggestions(q){
+  fetch('https://api.bing.com/osjson.aspx?query='+encodeURIComponent(q))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      var suggestions = (data && data[1]) || [];
+      if(!suggestions.length){hideSuggestions();return}
+      suggestIdx = -1;
+      var el = document.getElementById('searchSuggestions');
+      el.innerHTML = suggestions.map(function(s,i){
+        return '<div class="search-suggest-item" data-idx="'+i+'" onmousedown="selectSuggestion(\''+s.replace(/'/g,"\\'")+'\')"><i class="bi bi-search"></i> '+s+'</div>';
+      }).join('');
+      el.style.display = 'block';
+    })
+    .catch(function(){hideSuggestions()});
+}
+function selectSuggestion(text){
+  document.getElementById('searchInput').value = text;
+  hideSuggestions();
+  window.open('https://www.bing.com/search?q='+encodeURIComponent(text),'_blank');
+}
+function hideSuggestions(){document.getElementById('searchSuggestions').style.display = 'none';suggestIdx = -1}
+document.addEventListener('click', function(e){if(!e.target.closest('.search-wrapper')) hideSuggestions()});
+
+var links = [];
+var editingIndex = -1;
+function renderLinks(){
+  var grid = document.getElementById('linksGrid');
+  grid.innerHTML = links.map(function(l,i){
+    var favicon = l.url ? 'https://www.google.com/s2/favicons?domain='+encodeURIComponent(l.url)+'&sz=32' : '';
+    return '<a class="quick-link-card" href="'+l.url+'" target="_blank" title="'+l.name+'">'+
+      '<span class="quick-link-icon" style="background:rgba(140,87,255,.08)">'+
+        (favicon?'<img src="'+favicon+'" style="width:20px;height:20px" onerror="this.parentElement.innerHTML=\'<i class=&quot;bi bi-link-45deg&quot;></i>\'">':'<i class="bi bi-link-45deg"></i>')+
+      '</span>'+l.name+
+      '<button class="quick-link-del" onclick="event.preventDefault();event.stopPropagation();delLink('+i+')">&times;</button>'+
+    '</a>';
+  }).join('');
+  grid.innerHTML += '<button class="quick-link-card quick-link-add" onclick="addLink()"><i class="bi bi-plus-lg"></i> 添加</button>';
+}
+function addLink(){showEdit(-1,{name:'',url:''})}
+function delLink(i){if(!confirm('删除快捷链接「'+links[i].name+'」？')) return;links.splice(i,1);saveLinks();renderLinks()}
+function showEdit(idx, data){
+  editingIndex = idx;
+  var overlay = document.createElement('div');
+  overlay.className = 'link-edit-overlay';
+  overlay.innerHTML = '<div class="link-edit-card">'+
+    '<h5>'+(idx>=0?'编辑':'添加')+'快捷链接</h5>'+
+    '<input id="editName" placeholder="名称" value="'+(data.name||'')+'">'+
+    '<input id="editUrl" placeholder="网址 https://..." value="'+(data.url||'')+'">'+
+    '<div class="link-edit-btns">'+
+      '<button class="btn btn-sm btn-outline-secondary" onclick="this.closest(\'.link-edit-overlay\').remove()">取消</button>'+
+      '<button class="btn btn-sm btn-primary" onclick="saveEdit()">保存</button>'+
+    '</div>'+
+  '</div>';
+  overlay.onclick = function(e){if(e.target===overlay) overlay.remove()};
+  document.body.appendChild(overlay);
+  setTimeout(function(){document.getElementById('editName').focus()},100);
+}
+function saveEdit(){
+  var name = document.getElementById('editName').value.trim();
+  var url = document.getElementById('editUrl').value.trim();
+  if(!name){LabToast.show('请输入名称','warning',2000);return}
+  if(url&&!url.startsWith('http')) url='https://'+url;
+  var item = {name:name,url:url};
+  if(editingIndex>=0) links[editingIndex]=item;
+  else links.push(item);
+  saveLinks();renderLinks();
+  document.querySelector('.link-edit-overlay').remove();
+}
+function saveLinks(){fetch('/home/links',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links:links})})}
+fetch('/home/links').then(function(r){return r.json()}).then(function(d){links = d.links || [];renderLinks()});
+</script>
+{% endblock %}

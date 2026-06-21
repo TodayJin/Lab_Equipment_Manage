@@ -54,13 +54,13 @@ def create_app():
         db.session.rollback()
         from flask import flash, redirect, url_for, request
         flash('数据库操作失败，请重试。', 'danger')
-        return redirect(request.referrer or url_for('dashboard.index'))
+        return redirect(request.referrer or url_for('home.index'))
 
     @app.errorhandler(413)
     def handle_too_large(e):
         from flask import flash, redirect, url_for, request
         flash('文件太大（最大 100MB）。', 'danger')
-        return redirect(request.referrer or url_for('dashboard.index'))
+        return redirect(request.referrer or url_for('home.index'))
 
     # 上下文处理器：注入签到状态到所有模板
     from flask_login import current_user
@@ -90,6 +90,20 @@ def create_app():
         except Exception:
             pass
         return {'checkin_status': None}
+
+    @app.context_processor
+    def inject_theme():
+        """注入用户配色主题到模板"""
+        try:
+            from flask_login import current_user as _cu
+            if _cu.is_authenticated:
+                from src.models import UserSettings
+                stg = UserSettings.query.filter_by(user_id=_cu.id).first()
+                if stg and stg.color_theme:
+                    return {'color_theme': stg.color_theme}
+        except Exception:
+            pass
+        return {'color_theme': 'purple'}
 
     # Jinja2 filter: UTC -> local time (+8h)
     @app.template_filter('localtime')
@@ -140,6 +154,7 @@ def create_app():
     from src.lab import lab_bp
     from src.account import account_bp
     from src.chat import chat_bp
+    from src.home import home_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(equipment_bp)
@@ -154,6 +169,7 @@ def create_app():
     app.register_blueprint(lab_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(home_bp)
 
     # 上传目录
     if getattr(sys, "frozen", False):
@@ -165,6 +181,19 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        # 迁移：为旧数据库添加 color_theme 列
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            cols = [c['name'] for c in inspector.get_columns('user_settings')]
+            if 'color_theme' not in cols:
+                db.session.execute(text("ALTER TABLE user_settings ADD COLUMN color_theme VARCHAR(20) DEFAULT 'purple'"))
+                db.session.commit()
+            if 'quick_links' not in cols:
+                db.session.execute(text("ALTER TABLE user_settings ADD COLUMN quick_links TEXT DEFAULT '[]'"))
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
         # 数据库迁移
         from sqlalchemy import inspect
         inspector = inspect(db.engine)

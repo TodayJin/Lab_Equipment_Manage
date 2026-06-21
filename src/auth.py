@@ -10,7 +10,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard.index'))
+        return redirect(url_for('home.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -19,7 +19,7 @@ def login():
             login_user(user)
             flash('登录成功！', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('dashboard.index'))
+            return redirect(next_page or url_for('home.index'))
         flash('用户名或密码错误。', 'danger')
     return render_template('auth/login.html', form=form)
 
@@ -27,7 +27,7 @@ def login():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard.index'))
+        return redirect(url_for('home.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
@@ -72,5 +72,5 @@ def change_password():
             log_operation('change_password', 'user', current_user.id, current_user.username)
             db.session.commit()
             flash('密码修改成功！', 'success')
-            return redirect(url_for('dashboard.index'))
+            return redirect(url_for('home.index'))
     return render_template('auth/change_password.html', form=form)

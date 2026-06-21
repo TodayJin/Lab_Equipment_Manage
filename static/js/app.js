@@ -309,8 +309,8 @@ const LabToast = {
 
 // ═══════════════ 全局未读消息轮询（所有页面生效） ═══════════════
 (function() {
+    var _lastUnreadCount = -1;
     function poll() {
-        // 在群聊/共享文件页面不显示未读红点
         if (location.pathname.startsWith('/chat')) {
             var badge = document.querySelector('.chat-unread-badge');
             if (badge) badge.style.display = 'none';
@@ -319,7 +319,10 @@ const LabToast = {
         fetch('/chat/unread')
         .then(r => r.json()).then(function(data) {
             var badge = document.querySelector('.chat-unread-badge');
-            if (data && data.count > 0) {
+            var count = data && data.count ? data.count : 0;
+            if (count === _lastUnreadCount) return;
+            _lastUnreadCount = count;
+            if (count > 0) {
                 if (badge) {
                     badge.textContent = data.count;
                     badge.style.display = '';
@@ -387,9 +390,6 @@ const LabToast = {
                     }, 15000);
                 }
             });
-            if (location.pathname === '/chat/files') {
-                setTimeout(function() { location.reload(); }, 2000);
-            }
         }).catch(function() {});
     }
 
@@ -476,3 +476,300 @@ function ajaxPost(url, confirmMsg, onSuccess, extraData) {
     LabToast.show('操作失败，请重试', 'danger', 3000);
   });
 }
+
+// ═══════════════ 粒子网络背景 — 增强版 ═══════════════
+(function(){
+  var canvas = document.getElementById('particleCanvas');
+  var ctx = canvas.getContext('2d');
+  var W, H, particles = [];
+  var mouse = {x:null, y:null, r:150};
+  var PARTICLE_COUNT = 120;
+  var time = 0;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  document.addEventListener('mousemove', function(e){
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+  document.addEventListener('mouseleave', function(){
+    mouse.x = null;
+    mouse.y = null;
+  });
+
+  function Particle(){
+    this.reset();
+  }
+  Particle.prototype.reset = function(){
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - .5) * .5;
+    this.vy = (Math.random() - .5) * .5;
+    this.baseR = Math.random() * 3.5 + 1.2;
+    this.r = this.baseR;
+    this.phase = Math.random() * Math.PI * 2;
+    this.pulseSpeed = .01 + Math.random() * .02;
+  };
+  Particle.prototype.update = function(){
+    this.x += this.vx;
+    this.y += this.vy;
+    if(this.x < -20) this.x = W + 20;
+    if(this.x > W + 20) this.x = -20;
+    if(this.y < -20) this.y = H + 20;
+    if(this.y > H + 20) this.y = -20;
+
+    // 脉冲呼吸
+    this.phase += this.pulseSpeed;
+    this.r = this.baseR + Math.sin(this.phase) * .6;
+
+    // 鼠标交互
+    if(mouse.x != null){
+      var dx = mouse.x - this.x;
+      var dy = mouse.y - this.y;
+      var dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist < mouse.r){
+        var force = (mouse.r - dist) / mouse.r;
+        // 近距离排斥，中距离吸引，形成环绕效果
+        if(dist < 40){
+          this.vx -= dx * .002;
+          this.vy -= dy * .002;
+        }else{
+          this.vx += dx * force * .003;
+          this.vy += dy * force * .003;
+        }
+      }
+    }
+    var speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+    if(speed > 2){this.vx *= .97;this.vy *= .97}
+    if(speed < .2){this.vx *= 1.01;this.vy *= 1.01}
+  };
+
+  for(var i=0;i<PARTICLE_COUNT;i++) particles.push(new Particle());
+
+  function getColor(alpha, offset){
+    var style = getComputedStyle(document.documentElement);
+    var pri = style.getPropertyValue('--pri').trim();
+    var acc = style.getPropertyValue('--acc').trim();
+    var hex = offset ? acc : pri;
+    var r = parseInt(hex.slice(1,3),16);
+    var g = parseInt(hex.slice(3,5),16);
+    var b = parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+alpha+')';
+  }
+
+  function animate(){
+    time += .016;
+    var isDark = document.documentElement.classList.contains('dark');
+
+    // 全清 + 重新填充背景
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowBlur = 0;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = isDark ? '#28243D' : '#F4F5FA';
+    ctx.fillRect(0,0,W,H);
+
+    // 遍历三次：连线、光晕、粒子点
+    var linkDist = 200;
+
+    // ── 连线层 ──
+    for(var i=0;i<particles.length;i++){
+      for(var j=i+1;j<particles.length;j++){
+        var dx = particles[i].x - particles[j].x;
+        var dy = particles[i].y - particles[j].y;
+        var dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < linkDist){
+          var alpha = (1 - dist/linkDist);
+          ctx.strokeStyle = getColor(isDark ? alpha * .25 : alpha * .12, false);
+          ctx.lineWidth = alpha * 2;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ── 鼠标连线 + 光环 ──
+    if(mouse.x != null){
+      for(var k=0;k<particles.length;k++){
+        var mx = particles[k].x - mouse.x;
+        var my = particles[k].y - mouse.y;
+        var md = Math.sqrt(mx*mx+my*my);
+        if(md < 220){
+          var ma = (1 - md/220);
+          ctx.strokeStyle = getColor(ma * .25, true);
+          ctx.lineWidth = ma * 2;
+          ctx.beginPath();
+          ctx.moveTo(particles[k].x, particles[k].y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.stroke();
+        }
+      }
+      // 鼠标位置波纹
+      var waveR = 50 + Math.sin(time * 3) * 16;
+      var g1 = ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,waveR);
+      g1.addColorStop(0,getColor(.08, true));
+      g1.addColorStop(.5,getColor(.03, false));
+      g1.addColorStop(1,getColor(0, false));
+      ctx.fillStyle = g1;
+      ctx.beginPath();
+      ctx.arc(mouse.x,mouse.y,waveR,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // ── 粒子光晕 + 点 ──
+    for(var p=0;p<particles.length;p++){
+      particles[p].update();
+      var px = particles[p].x, py = particles[p].y, pr = particles[p].r;
+
+      // 光晕
+      var glow = ctx.createRadialGradient(px,py,0,px,py,pr*4);
+      glow.addColorStop(0,getColor(isDark ? .5 : .35, false));
+      glow.addColorStop(.5,getColor(isDark ? .15 : .08, false));
+      glow.addColorStop(1,getColor(0, false));
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(px,py,pr*4,0,Math.PI*2);
+      ctx.fill();
+
+      // 核心亮点
+      ctx.fillStyle = getColor(isDark ? .9 : .7, true);
+      ctx.shadowColor = getColor(.6, true);
+      ctx.shadowBlur = pr * 4;
+      ctx.beginPath();
+      ctx.arc(px,py,pr,0,Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+// ═══════════════ 光影流动
+// ═══════════════ 光影流动背景 ═══════════════
+(function(){
+  var canvas = document.getElementById('glowCanvas');
+  var ctx = canvas.getContext('2d');
+  var W, H;
+  var blobs = [];
+  var BLOB_COUNT = 6;
+  var mouse = {x:0.5, y:0.5, tx:0.5, ty:0.5};
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  document.addEventListener('mousemove', function(e){
+    mouse.tx = e.clientX / W;
+    mouse.ty = e.clientY / H;
+  });
+
+  function getColor(alpha, isAccent){
+    var style = getComputedStyle(document.documentElement);
+    var hex = style.getPropertyValue(isAccent ? '--acc' : '--pri').trim();
+    var r = parseInt(hex.slice(1,3),16);
+    var g = parseInt(hex.slice(3,5),16);
+    var b = parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+alpha+')';
+  }
+
+  // 创建流动光斑
+  for(var i=0;i<BLOB_COUNT;i++){
+    blobs.push({
+      x:Math.random(), y:Math.random(),
+      tx:Math.random(), ty:Math.random(),
+      r:.08 + Math.random()*.18,
+      phase:Math.random()*Math.PI*2,
+      speed:.003 + Math.random()*.006,
+      colorIdx:i%3
+    });
+  }
+
+  function animate(){
+    // 鼠标缓动
+    mouse.x += (mouse.tx - mouse.x) * .05;
+    mouse.y += (mouse.ty - mouse.y) * .05;
+
+    var isDark = document.documentElement.classList.contains('dark');
+    // 全清背景
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = isDark ? '#28243D' : '#F4F5FA';
+    ctx.fillRect(0,0,W,H);
+
+    // 绘制光斑
+    for(var i=0;i<blobs.length;i++){
+      var b = blobs[i];
+      b.phase += b.speed;
+      // 目标位置缓慢漂移 + 鼠标影响
+      b.tx += (Math.sin(b.phase) * .002) + (mouse.x - .5) * .001;
+      b.ty += (Math.cos(b.phase * 1.3) * .002) + (mouse.y - .5) * .001;
+      b.tx = ((b.tx%1)+1)%1;
+      b.ty = ((b.ty%1)+1)%1;
+      b.x += (b.tx - b.x) * .02;
+      b.y += (b.ty - b.y) * .02;
+
+      var px = b.x * W;
+      var py = b.y * H;
+      var pr = b.r * Math.min(W,H);
+      var isAccent = b.colorIdx === 1;
+
+      // 光晕
+      var glow = ctx.createRadialGradient(px,py,0,px,py,pr);
+      glow.addColorStop(0,getColor(isDark?.5:.35, isAccent));
+      glow.addColorStop(.3,getColor(isDark?.25:.18, b.colorIdx===2));
+      glow.addColorStop(.6,getColor(isDark?.08:.05, false));
+      glow.addColorStop(1,getColor(0, false));
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(px,py,pr,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // anime.js 驱动色相循环
+  anime({
+    targets: document.documentElement,
+    duration: 20000,
+    loop: true,
+    easing: 'linear',
+    update: function(){}
+  });
+
+  animate();
+})();
+
+// ═══════════════ 深空星野
+// ═══════════════ 背景切换 ═══════════════
+(function(){
+  var saved = localStorage.getItem('lab_home_bg') || 'particle';
+  function switchBg(type){
+    var p = document.getElementById('particleCanvas');
+    var g = document.getElementById('glowCanvas');
+    p.style.opacity = type==='particle'?'1':'0';
+    p.style.zIndex = type==='particle'?'0':'-1';
+    g.style.opacity = type==='glow'?'1':'0';
+    g.style.zIndex = type==='glow'?'0':'-1';
+    document.querySelectorAll('.bg-switch-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.bg === type);
+    });
+    localStorage.setItem('lab_home_bg', type);
+  }
+  document.getElementById('bgSwitcher').addEventListener('click', function(e){
+    var btn = e.target.closest('.bg-switch-btn');
+    if(btn) switchBg(btn.dataset.bg);
+  });
+  switchBg(saved);
+})();
+

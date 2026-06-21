@@ -125,10 +125,14 @@ class SearchableSelect {
 
   _renderOptions(items) {
     if (items.length === 0) {
-      this.optionsEl.innerHTML = '<div class="ss-no-results"><i class="bi bi-inbox"></i><p>没找到匹配的器材</p></div>';
+      if (this.optionsEl.dataset.empty !== '1') {
+        this.optionsEl.innerHTML = '<div class="ss-no-results"><i class="bi bi-inbox"></i><p>没找到匹配的器材</p></div>';
+        this.optionsEl.dataset.empty = '1';
+      }
       return;
     }
-    this.optionsEl.innerHTML = items.map(e => {
+    this.optionsEl.dataset.empty = '0';
+    var html = items.map(e => {
       const isLow = e.alert_threshold > 0 && e.stock_quantity <= e.alert_threshold;
       const sel = e.id === this.selectedId ? ' selected' : '';
       return `<div class="ss-option${sel}" data-id="${e.id}" data-name="${e.name} (${e.model || '无型号'})">
@@ -140,6 +144,11 @@ class SearchableSelect {
         <span class="ss-option-stock${isLow ? ' low' : ''}">库存: ${e.stock_quantity}${e.unit || '个'}${isLow ? ' ⚠' : ''}</span>
       </div>`;
     }).join('');
+    // 缓存：仅内容变化时才更新 DOM
+    if (this._lastRendered !== html) {
+      this._lastRendered = html;
+      this.optionsEl.innerHTML = html;
+    }
 
     this.optionsEl.querySelectorAll('.ss-option').forEach(opt => {
       opt.addEventListener('mousedown', (e) => {
