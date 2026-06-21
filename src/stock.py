@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from src.models import db, Equipment, StockRecord, Category
 from src.forms import StockInForm, StockOutForm
-from src.helpers import log_operation
+from src.helpers import log_operation, request_is_api
 
 stock_bp = Blueprint('stock', __name__, url_prefix='/stock')
 
@@ -137,29 +137,38 @@ def undo(record_id):
 
     # 只能撤销自己的，且只能撤销 5 分钟内的
     if record.user_id != current_user.id:
-        flash('只能撤销自己的操作。', 'danger')
+        msg = '只能撤销自己的操作。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
         return redirect(request.referrer or url_for('dashboard.index'))
 
     if record.undone:
-        flash('该操作已被撤销。', 'warning')
+        msg = '该操作已被撤销。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'warning')
         return redirect(request.referrer or url_for('dashboard.index'))
 
     from datetime import datetime, timedelta
     age = datetime.utcnow() - record.created_at
     if age > timedelta(minutes=5):
-        flash('该操作已超过 5 分钟，无法撤销。请通过反向操作来修正。', 'danger')
+        msg = '该操作已超过 5 分钟，无法撤销。请通过反向操作来修正。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
         return redirect(request.referrer or url_for('dashboard.index'))
 
     equipment = Equipment.query.get(record.equipment_id)
     if not equipment:
-        flash('器材不存在。', 'danger')
+        msg = '器材不存在。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
         return redirect(request.referrer or url_for('dashboard.index'))
 
     try:
-        # 反向操作
         if record.type == 'in':
             if equipment.stock_quantity < record.quantity:
-                flash(f'无法撤销：当前库存({equipment.stock_quantity})不足以回退。', 'danger')
+                msg = f'无法撤销：当前库存({equipment.stock_quantity})不足以回退。'
+                if request_is_api(): return jsonify({'ok': False, 'message': msg})
+                flash(msg, 'danger')
                 return redirect(request.referrer or url_for('dashboard.index'))
             equipment.stock_quantity -= record.quantity
         else:
@@ -169,9 +178,13 @@ def undo(record_id):
         log_operation('undo_stock', 'stock_record', record.id, equipment.name,
                       {'original_type': record.type, 'quantity': record.quantity})
         db.session.commit()
-        flash(f'已撤销：{equipment.name} {record.type_display} {record.quantity}{equipment.unit}。', 'success')
+        msg = f'已撤销：{equipment.name} {record.type_display} {record.quantity}{equipment.unit}。'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg})
+        flash(msg, 'success')
     except Exception:
         db.session.rollback()
-        flash('撤销失败，请重试。', 'danger')
+        msg = '撤销失败，请重试。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
 
     return redirect(request.referrer or url_for('dashboard.index'))

@@ -414,3 +414,65 @@ const LabToast = {
         }
     });
 })();
+
+// ═══════════════ 全局 AJAX 签到/签退 ═══════════════
+function checkinAction(action, attendanceId) {
+  var url = action === 'signin' ? '/lab/checkin/signin' : '/lab/checkin/' + attendanceId + '/signout';
+  var btn = event && event.target ? event.target.closest('button') : null;
+  if (btn) { btn.disabled = true; btn._origHtml = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>处理中…'; }
+
+  var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+  var csrfToken = csrfMeta ? csrfMeta.content : '';
+  var headers = { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' };
+  if (csrfMeta) headers['X-CSRFToken'] = csrfToken;
+
+  fetch(url, { method: 'POST', headers: headers, body: 'csrf_token=' + encodeURIComponent(csrfToken) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        LabToast.show(data.message, 'success', 3000);
+        if (window.location.pathname === '/lab/checkin' && typeof refreshCheckinContent === 'function') {
+          refreshCheckinContent();
+        } else {
+          setTimeout(function() { location.reload(); }, 800);
+        }
+      } else {
+        LabToast.show(data.message, 'warning', 3000);
+        if (btn) { btn.disabled = false; btn.innerHTML = btn._origHtml; }
+      }
+    })
+    .catch(function() {
+      LabToast.show('操作失败，请重试', 'danger', 3000);
+      if (btn) { btn.disabled = false; btn.innerHTML = btn._origHtml; }
+    });
+}
+
+// ═══════════════ 通用 AJAX POST（删除/撤销等） ═══════════════
+function ajaxPost(url, confirmMsg, onSuccess, extraData) {
+  if (confirmMsg && !confirm(confirmMsg)) return;
+  var csrfToken = document.querySelector('meta[name="csrf-token"]');
+  var token = csrfToken ? csrfToken.content : '';
+  var body = 'csrf_token=' + encodeURIComponent(token);
+  if (extraData) {
+    if (typeof extraData === 'string') body += '&' + extraData;
+    else Object.keys(extraData).forEach(function(k) { body += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(extraData[k]); });
+  }
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      LabToast.show(data.message, 'success', 3000);
+      if (typeof onSuccess === 'function') onSuccess(data);
+      else setTimeout(function() { location.reload(); }, 800);
+    } else {
+      LabToast.show(data.message, 'warning', 3000);
+    }
+  })
+  .catch(function() {
+    LabToast.show('操作失败，请重试', 'danger', 3000);
+  });
+}

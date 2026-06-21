@@ -12,7 +12,7 @@
         {% if notices %}
         <div class="p-3">
             {% for n in notices %}
-            <div class="mb-3 pb-3 border-bottom">
+            <div class="mb-3 pb-3 border-bottom notice-item">
                 <div class="d-flex justify-content-between">
                     <h6 class="fw-bold mb-1">
                         {% if n.is_pinned %}<span class="badge bg-danger me-1">置顶</span>{% endif %}
@@ -23,10 +23,8 @@
                 <p class="mb-1">{{ n.content }}</p>
                 <small class="text-muted">发布者：{{ n.user.username }}</small>
                 {% if current_user.is_admin %}
-                <form method="POST" action="{{ url_for('lab.delete_notice', id=n.id) }}" class="d-inline float-end"
-                      onsubmit="return confirm('确定删除此公告？')">
-                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                </form>
+                <button class="btn btn-sm btn-outline-danger float-end"
+                        onclick="var btn=this;ajaxPost('{{ url_for('lab.delete_notice', id=n.id) }}','确定删除此公告？',function(){btn.closest('.notice-item').remove()})"><i class="bi bi-trash"></i></button>
                 {% endif %}
             </div>
             {% endfor %}
@@ -59,19 +57,18 @@
         <!-- 发布公告 -->
         <div class="dash-panel mb-3">
             <div class="panel-head"><i class="bi bi-pencil-square"></i><span>发布公告</span></div>
-            <div class="p-3">
-                <form method="POST" action="{{ url_for('lab.new_notice') }}">
-                    <div class="mb-2">
-                        <input type="text" name="title" class="form-control form-control-sm" placeholder="公告标题" required>
-                    </div>
-                    <div class="mb-2">
-                        <textarea name="content" class="form-control form-control-sm" rows="2" placeholder="公告内容" required></textarea>
-                    </div>
-                    <div class="form-check form-check-inline mb-2">
-                        <input class="form-check-input" type="checkbox" name="is_pinned"><label class="form-check-label small">置顶</label>
-                    </div>
-                    <button class="btn btn-primary btn-sm w-100">发布</button>
-                </form>
+            <div class="p-3" id="newNoticeForm">
+                <div class="mb-2">
+                    <input type="text" name="title" id="noticeTitle" class="form-control form-control-sm" placeholder="公告标题" required>
+                </div>
+                <div class="mb-2">
+                    <textarea name="content" id="noticeContent" class="form-control form-control-sm" rows="2" placeholder="公告内容" required></textarea>
+                </div>
+                <div class="form-check form-check-inline mb-2">
+                    <input type="checkbox" name="is_pinned" id="noticePinned" class="form-check-input">
+                    <label class="form-check-label small" for="noticePinned">置顶</label>
+                </div>
+                <button class="btn btn-primary btn-sm w-100" onclick="submitNotice()"><i class="bi bi-send"></i> 发布</button>
             </div>
         </div>
         <div class="dash-panel">
@@ -84,4 +81,32 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function submitNotice() {
+  var title = document.getElementById('noticeTitle').value.trim();
+  var content = document.getElementById('noticeContent').value.trim();
+  var pinned = document.getElementById('noticePinned').checked;
+  if (!title || !content) { LabToast.show('标题和内容不能为空', 'warning', 3000); return; }
+  var token = document.querySelector('meta[name="csrf-token"]');
+  var body = 'title=' + encodeURIComponent(title) + '&content=' + encodeURIComponent(content) + '&is_pinned=' + (pinned ? 'on' : '') + '&csrf_token=' + encodeURIComponent(token ? token.content : '');
+  fetch('/lab/notices/new', {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      LabToast.show(data.message, 'success', 3000);
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      LabToast.show(data.message, 'warning', 3000);
+    }
+  })
+  .catch(function() { LabToast.show('发布失败，请重试', 'danger', 3000); });
+}
+</script>
 {% endblock %}

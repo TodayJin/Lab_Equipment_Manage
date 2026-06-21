@@ -55,10 +55,10 @@
 <!-- ═══ 总览面板 ═══ -->
 <div class="tab-panel" id="panel-overview">
   <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">{{ person_stats|length }}</div><div class="stat-label">签到人数</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">{{ total_days }}</div><div class="stat-label">统计天数</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_daily }}">{{ avg_daily }} 分钟</div><div class="stat-label">日均在线</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" data-minutes="{{ avg_per_person }}">{{ avg_per_person }} 分钟</div><div class="stat-label">人均在线</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value" id="ovPersonCount">{{ person_stats|length }}</div><div class="stat-label">签到人数</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value" id="ovTotalDays">{{ total_days }}</div><div class="stat-label">统计天数</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-clock"></i></div><div class="stat-body"><div class="stat-value dur-val" id="ovAvgDaily" data-minutes="{{ avg_daily }}">{{ avg_daily }} 分钟</div><div class="stat-label">日均在线</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-person-check"></i></div><div class="stat-body"><div class="stat-value dur-val" id="ovAvgPerPerson" data-minutes="{{ avg_per_person }}">{{ avg_per_person }} 分钟</div><div class="stat-label">人均在线</div></div></div>
   </div>
 
   <div class="dash-panel">
@@ -66,7 +66,7 @@
     {% if person_stats %}
     <div class="table-container">
       <table class="table table-sm"><thead><tr><th>成员</th><th>到勤天数</th><th>累计时长</th><th>平均/天</th><th>签到次数</th></tr></thead>
-        <tbody>
+        <tbody id="ovPersonBody">
           {% for name, ps in person_stats.items() %}
           <tr class="member-row" onclick="openMemberDetail('{{ name }}', {{ ps.user_id }})" title="点击查看 {{ name }} 的每日明细">
             <td class="fw-medium">{{ name }}</td>
@@ -152,7 +152,7 @@
 <script>
 // ═══════════════ State ═══════════════
 let currentPeriod = 'month';
-let currentTab = 'overview';
+let currentTab = '{{ view }}' || 'overview';
 let currentMemberName = null;
 let currentMemberId = null;
 let bsModal = null;
@@ -176,8 +176,7 @@ function fmtTime(mins) {
   return d + ' 天 ' + h + ' 小时 ' + m + ' 分钟';
 }
 
-const RANKING_DATA = {{ ranking_json | tojson }};
-const MEMBER_DETAILS = {{ member_details_json | tojson }};
+
 
 // ═══════════════ Time period chips ═══════════════
 document.getElementById('timeChips').addEventListener('click', function(e) {
@@ -231,36 +230,88 @@ document.getElementById('mainTabs').addEventListener('click', function(e) {
 });
 
 function refreshCurrentTab() {
+  if (currentTab === 'overview') refreshOverview();
   if (currentTab === 'ranking') renderRanking();
   if (currentTab === 'daily') loadDailyCharts(getDateRange());
+}
+
+// ═══════════════ Overview refresh ═══════════════
+function refreshOverview() {
+  const range = getDateRange();
+  // Show subtle loading state
+  document.getElementById('ovPersonCount').textContent = '…';
+  document.getElementById('ovTotalDays').textContent = '…';
+  document.getElementById('ovAvgDaily').textContent = '…';
+  document.getElementById('ovAvgPerPerson').textContent = '…';
+
+  fetch(`/lab/checkin/stats?json=overview&from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { console.error(data.error); return; }
+      // Update stat cards
+      document.getElementById('ovPersonCount').textContent = data.person_count;
+      document.getElementById('ovTotalDays').textContent = data.total_days;
+      document.getElementById('ovAvgDaily').textContent = fmtTime(data.avg_daily);
+      document.getElementById('ovAvgDaily').dataset.minutes = data.avg_daily;
+      document.getElementById('ovAvgPerPerson').textContent = fmtTime(data.avg_per_person);
+      document.getElementById('ovAvgPerPerson').dataset.minutes = data.avg_per_person;
+
+      // Update person summary table
+      const tbody = document.getElementById('ovPersonBody');
+      if (!data.persons || data.persons.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>暂无数据</p></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.persons.map(p => {
+        const name = (p.name || '').replace(/'/g, "\\'");
+        return `<tr class="member-row" onclick="openMemberDetail('${name}', ${p.user_id})" title="点击查看 ${name} 的每日明细">
+          <td class="fw-medium">${p.name}</td>
+          <td>${p.days} 天</td>
+          <td class="dur-val" data-minutes="${p.total_min}">${fmtTime(p.total_min)}</td>
+          <td class="dur-val" data-minutes="${p.avg_min}">${fmtTime(p.avg_min)}</td>
+          <td>${p.count} 次</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => {});
 }
 
 // ═══════════════ Ranking ═══════════════
 function renderRanking() {
   const list = document.getElementById('rankingList');
-  if (!RANKING_DATA || RANKING_DATA.length === 0) {
-    list.innerHTML = '<div class="empty-state py-4"><p>该时间段暂无数据</p></div>';
-    return;
-  }
-  const maxMin = RANKING_DATA[0].total_minutes || 1;
-  const medals = ['🥇', '🥈', '🥉'];
-  const colors = ['#f59e0b', '#64748b', '#d97706'];
-  const gradients = ['#f59e0b, #fbbf24', '#64748b, #94a3b8', '#d97706, #f97316'];
+  list.innerHTML = '<div class="empty-state py-4"><div class="spinner-border text-primary mb-2" role="status"></div><p>加载中…</p></div>';
+  const range = getDateRange();
+  fetch(`/lab/checkin/stats?json=ranking&from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`)
+    .then(r => r.json())
+    .then(data => {
+      const ranking = data.ranking || [];
+      if (ranking.length === 0) {
+        list.innerHTML = '<div class="empty-state py-4"><p>该时间段暂无数据</p></div>';
+        return;
+      }
+      const maxMin = ranking[0].total_minutes || 1;
+      const medals = ['🥇', '🥈', '🥉'];
+      const colors = ['#f59e0b', '#64748b', '#d97706'];
+      const gradients = ['#f59e0b, #fbbf24', '#64748b, #94a3b8', '#d97706, #f97316'];
 
-  list.innerHTML = RANKING_DATA.map((m, i) => {
-    const name = (m.username || '').replace(/'/g, "\\'");
-    const pct = Math.round(m.total_minutes / maxMin * 100);
-    const isTop3 = i < 3;
-    return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" style="display:flex;align-items:center;gap:16px" onclick="openMemberDetail('${name}', ${m.user_id})">
-      <div class="ranking-rank">${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}</div>
-      <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : '#6366f1'}">${name.charAt(0)}</div>
-      <div class="ranking-body">
-        <div class="ranking-name">${m.username}</div>
-        <div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? 'linear-gradient(90deg,'+gradients[i]+')' : 'linear-gradient(90deg,#6366f1,#8b5cf6)'}"></div></div>
-      </div>
-      <div class="ranking-total">${fmtTime(m.total_minutes)}<div class="ranking-pct">${pct}%</div></div>
-    </div>`;
-  }).join('');
+      list.innerHTML = ranking.map((m, i) => {
+        const name = (m.username || '').replace(/'/g, "\\'");
+        const pct = Math.round(m.total_minutes / maxMin * 100);
+        const isTop3 = i < 3;
+        return `<div class="ranking-card ${isTop3 ? 'top-' + (i+1) : ''}" style="display:flex;align-items:center;gap:16px" onclick="openMemberDetail('${name}', ${m.user_id})">
+          <div class="ranking-rank">${isTop3 ? '<span class="ranking-medal">' + medals[i] + '</span>' : '<span class="ranking-num">' + (i+1) + '</span>'}</div>
+          <div class="ranking-avatar" style="background:${isTop3 ? colors[i] : '#6366f1'}">${name.charAt(0)}</div>
+          <div class="ranking-body">
+            <div class="ranking-name">${m.username}</div>
+            <div class="ranking-bar-wrap"><div class="ranking-bar" style="width:${pct}%; background:${isTop3 ? 'linear-gradient(90deg,'+gradients[i]+')' : 'linear-gradient(90deg,#6366f1,#8b5cf6)'}"></div></div>
+          </div>
+          <div class="ranking-total">${fmtTime(m.total_minutes)}<div class="ranking-pct">${pct}%</div></div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {
+      list.innerHTML = '<div class="empty-state py-4"><p>加载失败，请重试</p></div>';
+    });
   document.getElementById('rankingPeriodLabel').textContent =
     {week:'近一周',month:'近一月','2month':'近两月','3month':'近三月',custom:'自定义'}[currentPeriod] || '近一月';
 }
@@ -318,46 +369,93 @@ function loadMemberDetail(userId, period) {
     document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>无法获取用户信息</p></div></td></tr>';
     return;
   }
-  const data = MEMBER_DETAILS[String(userId)];
-  if (!data) {
-    document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无该成员数据</p></div></td></tr>';
-    document.getElementById('modalDays').textContent = '—';
-    document.getElementById('modalTotal').textContent = '—';
-    document.getElementById('modalAvg').textContent = '—';
-    return;
+  // 显示加载状态
+  document.getElementById('modalDays').textContent = '…';
+  document.getElementById('modalTotal').textContent = '…';
+  document.getElementById('modalAvg').textContent = '…';
+  document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>加载中…</div></td></tr>';
+
+  let range;
+  if (period) {
+    const today = new Date();
+    const from = new Date(today);
+    switch (period) {
+      case 'week': from.setDate(today.getDate() - 7); break;
+      case 'month': from.setMonth(today.getMonth() - 1); break;
+      case '2month': from.setMonth(today.getMonth() - 2); break;
+      default: from.setMonth(today.getMonth() - 1);
+    }
+    range = { from: from.toISOString().slice(0,10), to: today.toISOString().slice(0,10) };
+  } else {
+    range = getDateRange();
   }
-  document.getElementById('modalDays').textContent = data.days + ' 天';
-  document.getElementById('modalTotal').textContent = fmtTime(data.total_minutes);
-  document.getElementById('modalAvg').textContent = fmtTime(data.avg_minutes);
-  document.getElementById('modalLogBody').innerHTML = data.daily.map(d =>
-    `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : fmtTime(d.minutes)}</td></tr>`
-  ).join('') || '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无记录</p></div></td></tr>';
-  // Mini chart
-  setTimeout(() => {
-    const canvas = document.getElementById('modalDailyChart');
-    if (!canvas) return;
-    Chart.getChart('modalDailyChart')?.destroy();
-    const reversed = [...data.daily].reverse();
-    if (reversed.length === 0) return;
-    new Chart(canvas, {
-      type: 'bar', data: {
-        labels: reversed.map(d => d.date),
-        datasets: [{
-          label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
-          backgroundColor: reversed.map(() => {
-            const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
-            return gradient;
-          }),
-          borderRadius: 6
-        }]
-      }, options: { responsive: true, plugins: { legend: { display: false } } }
+
+  fetch(`/lab/checkin/user/${userId}/detail?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error || !data.daily || data.daily.length === 0) {
+        document.getElementById('modalDays').textContent = '—';
+        document.getElementById('modalTotal').textContent = '—';
+        document.getElementById('modalAvg').textContent = '—';
+        document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无该成员数据</p></div></td></tr>';
+        return;
+      }
+      document.getElementById('modalDays').textContent = data.days + ' 天';
+      document.getElementById('modalTotal').textContent = fmtTime(data.total_minutes);
+      document.getElementById('modalAvg').textContent = fmtTime(data.avg_minutes);
+      document.getElementById('modalLogBody').innerHTML = data.daily.map(d =>
+        `<tr><td class="text-muted small">${d.date}</td><td>${d.sign_in}</td><td>${d.sign_out || (d.is_active ? '<span class="badge bg-success">进行中</span>' : '—')}</td><td>${d.is_active ? '—' : fmtTime(d.minutes)}</td></tr>`
+      ).join('') || '<tr><td colspan="4"><div class="empty-state py-2"><p>暂无记录</p></div></td></tr>';
+      // Mini chart
+      setTimeout(() => {
+        const canvas = document.getElementById('modalDailyChart');
+        if (!canvas) return;
+        Chart.getChart('modalDailyChart')?.destroy();
+        const reversed = [...data.daily].reverse();
+        if (reversed.length === 0) return;
+        new Chart(canvas, {
+          type: 'bar', data: {
+            labels: reversed.map(d => d.date),
+            datasets: [{
+              label: '在线时长（分钟）', data: reversed.map(d => d.minutes),
+              backgroundColor: reversed.map(() => {
+                const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#6366f1'); gradient.addColorStop(1, '#e0e7ff');
+                return gradient;
+              }),
+              borderRadius: 6
+            }]
+          }, options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+      }, 100);
+    })
+    .catch(() => {
+      document.getElementById('modalDays').textContent = '—';
+      document.getElementById('modalTotal').textContent = '—';
+      document.getElementById('modalAvg').textContent = '—';
+      document.getElementById('modalLogBody').innerHTML = '<tr><td colspan="4"><div class="empty-state py-2"><p>加载失败，请重试</p></div></td></tr>';
     });
-  }, 100);
 }
 
 // ═══════════════ Initialize ═══════════════
 document.addEventListener('DOMContentLoaded', function() {
+  // 根据 URL view 参数激活对应标签页
+  if (currentTab !== 'overview') {
+    document.querySelectorAll('#mainTabs .h-tab').forEach(t => t.classList.remove('active'));
+    const tabEl = document.querySelector('#mainTabs .h-tab[data-tab="' + currentTab + '"]');
+    if (tabEl) {
+      tabEl.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      const panel = document.getElementById('panel-' + currentTab);
+      if (panel) {
+        panel.style.display = '';
+        refreshCurrentTab();
+      }
+    } else {
+      currentTab = 'overview';
+    }
+  }
+  // 格式化页面初始的时长数据
   document.querySelectorAll('.dur-val').forEach(el => {
     const mins = parseInt(el.dataset.minutes);
     if (!isNaN(mins)) el.textContent = fmtTime(mins);

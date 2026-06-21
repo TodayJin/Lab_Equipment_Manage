@@ -26,18 +26,14 @@
                     {% if last_log %}<p class="text-muted">{{ last_log.sign_in_time | localtime }} 开始</p>{% endif %}
                     {% if my_rec.total_duration > 0 %}<p class="small">今日累计 {{ my_rec.total_duration }} 分钟</p>{% endif %}
                 </div>
-                <form method="POST" action="{{ url_for('lab.do_signout', id=my_rec.id) }}">
-                    <button class="btn btn-warning btn-lg w-100"><i class="bi bi-box-arrow-right"></i> 签退</button>
-                </form>
+                <button class="btn btn-warning btn-lg w-100" onclick="checkinAction('signout', {{ my_rec.id }})"><i class="bi bi-box-arrow-right"></i> 签退</button>
                 {% else %}
                 <div class="mb-3" id="notCheckedInBlock">
                     <i class="bi bi-circle text-muted" style="font-size:48px"></i>
                     <h5 class="mt-2 text-muted">未签到</h5>
                     {% if my_rec and my_rec.total_duration > 0 %}<p class="small">今日累计 {{ my_rec.total_duration }} 分钟</p>{% endif %}
                 </div>
-                <form method="POST" action="{{ url_for('lab.do_signin') }}">
-                    <button class="btn btn-success btn-lg w-100"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
-                </form>
+                <button class="btn btn-success btn-lg w-100" onclick="checkinAction('signin')"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
                 {% endif %}
 
                 <!-- 通知权限请求遮罩（仅当未授权时显示） -->
@@ -102,9 +98,7 @@
                         <td>{% if r.is_checked_in %}<span class="badge bg-success">在线</span>{% else %}<span class="badge bg-secondary">离线</span>{% endif %}</td>
                         <td>
                             {% if r.is_checked_in %}
-                            <form method="POST" action="{{ url_for('lab.do_signout', id=r.id) }}" class="d-inline">
-                                <button class="btn btn-sm btn-outline-warning">签退</button>
-                            </form>
+                            <button class="btn btn-sm btn-outline-warning" onclick="checkinAction('signout', {{ r.id }})">签退</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -123,6 +117,65 @@
 
 {% block extra_scripts %}
 <script>
+// ═══════════════ AJAX 签到/签退 ═══════════════
+function checkinAction(action, attendanceId) {
+  const url = action === 'signin' ? '/lab/checkin/signin' : '/lab/checkin/' + attendanceId + '/signout';
+  const btn = event.target.closest('button');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>处理中…'; }
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'csrf_token={{ csrf_token }}'
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      LabToast.show(data.message, 'success', 3000);
+      // 局部刷新签到内容区
+      refreshCheckinContent();
+    } else {
+      LabToast.show(data.message, 'warning', 3000);
+      if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.origHtml || btn.innerHTML; }
+    }
+  })
+  .catch(() => {
+    LabToast.show('操作失败，请重试', 'danger', 3000);
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.origHtml || btn.innerHTML; }
+  });
+}
+
+function refreshCheckinContent() {
+  fetch('/lab/checkin/content')
+    .then(r => r.text())
+    .then(html => {
+      // Replace the main content area
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newContent = doc.querySelector('.row.g-4');
+      const oldContent = document.querySelector('.row.g-4');
+      if (newContent && oldContent) {
+        oldContent.innerHTML = newContent.innerHTML;
+      }
+      // Re-bind the checkin state for renew detection
+      const block = document.getElementById('checkedInBlock');
+      if (block && block.dataset.checkedIn === 'true') {
+        const ts = new Date(block.dataset.signinTs).getTime();
+        if (!isNaN(ts)) LabRenew.setSignInTs(ts);
+      } else {
+        localStorage.removeItem('lab_signin_ts');
+        localStorage.removeItem('lab_renew_ack');
+      }
+    });
+}
+
+// 保存按钮原始 HTML 用于恢复
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('button[onclick^="checkinAction"]').forEach(btn => {
+    btn.dataset.origHtml = btn.innerHTML;
+  });
+});
+
 // 签到时间戳写入 localStorage，所有标签页共享续签检测
 (function() {
     const block = document.getElementById('checkedInBlock');

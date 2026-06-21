@@ -1,9 +1,9 @@
 """ 网页端管理后台 — 用户管理、权限管理、操作日志 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from src.models import db, User, OperationLog, UserSettings
 from src.forms import AdminChangePasswordForm
-from src.helpers import admin_required, log_operation
+from src.helpers import admin_required, log_operation, request_is_api
 
 admin_web_bp = Blueprint('admin_web', __name__, url_prefix='/admin')
 
@@ -38,7 +38,9 @@ def change_role(user_id):
     log_operation('change_role', 'user', user.id, user.username,
                   {'from': old_role, 'to': new_role})
     db.session.commit()
-    flash(f'已将 {user.username} 的权限改为 {new_role}。', 'success')
+    msg = f'已将 {user.username} 的权限改为 {new_role}。'
+    if request_is_api(): return jsonify({'ok': True, 'message': msg})
+    flash(msg, 'success')
     return redirect(url_for('admin_web.index'))
 
 
@@ -56,7 +58,9 @@ def change_user_password(user_id):
     log_operation('change_password', 'user', user.id, user.username,
                   {'by_admin': current_user.username})
     db.session.commit()
-    flash(f'已重置 {user.username} 的密码。', 'success')
+    msg = f'已重置 {user.username} 的密码。'
+    if request_is_api(): return jsonify({'ok': True, 'message': msg})
+    flash(msg, 'success')
     return redirect(url_for('admin_web.index'))
 
 
@@ -66,21 +70,26 @@ def change_user_password(user_id):
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
-        flash('不能删除自己。', 'danger')
+        msg = '不能删除自己。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
         return redirect(url_for('admin_web.index'))
 
     if user.stock_records.count() > 0:
-        flash(f'{user.username} 有操作记录，无法删除。可以先禁用其权限。', 'danger')
+        msg = f'{user.username} 有操作记录，无法删除。可以先禁用其权限。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
         return redirect(url_for('admin_web.index'))
 
     name = user.username
-    # 清理 settings
     if user.settings:
         db.session.delete(user.settings)
     db.session.delete(user)
     log_operation('delete_user', 'user', None, name)
     db.session.commit()
-    flash(f'已删除用户 {name}。', 'success')
+    msg = f'已删除用户 {name}。'
+    if request_is_api(): return jsonify({'ok': True, 'message': msg})
+    flash(msg, 'success')
     return redirect(url_for('admin_web.index'))
 
 

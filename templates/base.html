@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}电子技术创新实验室 - 器材管理系统{% endblock %}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=3.3.0" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/bootstrap-icons.css') }}?v=3.3.0" rel="stylesheet">
@@ -132,13 +133,9 @@
                         {% if checkin_status.last_signin %}
                         <span class="checkin-time">{{ checkin_status.last_signin | localtime }}</span>
                         {% endif %}
-                        <form method="POST" action="{{ url_for('lab.do_signout', id=checkin_status.id) }}" class="d-inline">
-                            <button class="btn btn-sm btn-outline-warning">签退</button>
-                        </form>
+                        <button class="btn btn-sm btn-outline-warning" onclick="checkinAction('signout', {{ checkin_status.id }})">签退</button>
                         {% else %}
-                        <form method="POST" action="{{ url_for('lab.do_signin') }}" class="d-inline">
-                            <button class="btn btn-sm btn-success"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
-                        </form>
+                        <button class="btn btn-sm btn-success" onclick="checkinAction('signin')"><i class="bi bi-box-arrow-in-right"></i> 签到</button>
                         {% endif %}
                     </div>
                     {% endif %}

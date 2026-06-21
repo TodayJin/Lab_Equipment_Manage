@@ -92,10 +92,8 @@
                 <td class="text-muted small">{{ r.remark or '-' }}</td>
                 {% if current_user.is_admin %}
                 <td>
-                    <form method="POST" action="{{ url_for('records.delete_record', id=r.id) }}" class="d-inline"
-                          onsubmit="return confirm('确定删除 {{ r.user.username }} 的{{ r.type_display }}记录「{{ r.equipment.name }}」×{{ r.quantity }}{{ r.equipment.unit }}？\\n\\n这也会回退库存，此操作不可撤销。')">
-                        <button class="btn btn-sm btn-outline-danger record-delete-btn" title="删除此记录"><i class="bi bi-x-circle"></i></button>
-                    </form>
+                    <button class="btn btn-sm btn-outline-danger record-delete-btn" title="删除此记录"
+                            onclick="var btn=this;ajaxPost('{{ url_for('records.delete_record', id=r.id) }}','确定删除 {{ r.user.username }} 的{{ r.type_display }}记录「{{ r.equipment.name }}」×{{ r.quantity }}{{ r.equipment.unit }}？此操作也会回退库存且不可撤销。',function(){btn.closest('tr').remove()})"><i class="bi bi-x-circle"></i></button>
                 </td>
                 {% endif %}
             </tr>

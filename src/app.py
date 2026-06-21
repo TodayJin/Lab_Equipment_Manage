@@ -67,6 +67,15 @@ def create_app():
     from datetime import date as _date
 
     @app.context_processor
+    def inject_csrf():
+        """注入 CSRF token 到所有模板"""
+        try:
+            from flask_wtf.csrf import generate_csrf
+            return {'csrf_token': generate_csrf()}
+        except Exception:
+            return {'csrf_token': ''}
+
+    @app.context_processor
     def inject_checkin():
         try:
             from flask_login import current_user as _cu

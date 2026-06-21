@@ -5,7 +5,7 @@ from collections import defaultdict
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, jsonify
 from flask_login import login_required, current_user
 from src.models import db, Notice, DutyDay, Attendance, AttendanceLog, User
-from src.helpers import admin_required
+from src.helpers import admin_required, request_is_api
 
 lab_bp = Blueprint('lab', __name__, url_prefix='/lab')
 WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -29,7 +29,10 @@ def new_notice():
     if title and content:
         db.session.add(Notice(title=title, content=content, is_pinned=pinned, user_id=current_user.id))
         db.session.commit()
-        flash('公告已发布。', 'success')
+        msg = '公告已发布。'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg})
+        flash(msg, 'success')
+    if request_is_api(): return jsonify({'ok': False, 'message': '标题和内容不能为空。'})
     return redirect(url_for('lab.notices'))
 
 @lab_bp.route('/notices/<int:id>/delete', methods=['POST'])
@@ -38,7 +41,9 @@ def new_notice():
 def delete_notice(id):
     db.session.delete(Notice.query.get_or_404(id))
     db.session.commit()
-    flash('公告已删除。', 'info')
+    msg = '公告已删除。'
+    if request_is_api(): return jsonify({'ok': True, 'message': msg})
+    flash(msg, 'info')
     return redirect(url_for('lab.notices'))
 
 
@@ -109,6 +114,18 @@ def _auto_signout_renewal_expired():
     if expired:
         db.session.commit()
     return len(expired)
+
+
+@lab_bp.route('/checkin/content')
+@login_required
+def checkin_content():
+    """返回签到页面内容区 HTML（供 AJAX 局部刷新）"""
+    today = date.today()
+    _auto_signout_expired()
+    _auto_signout_renewal_expired()
+    today_records = Attendance.query.filter_by(date=today).order_by(Attendance.created_at.desc()).all()
+    all_users = User.query.order_by(User.username).all()
+    return render_template('lab/checkin.html', today=today, today_records=today_records, users=all_users)
 
 
 @lab_bp.route('/checkin')
@@ -198,7 +215,9 @@ def do_signin():
         db.session.add(record)
         db.session.commit()
     if record.is_checked_in:
-        flash(f'请先签退再签到。', 'warning')
+        msg = '请先签退再签到。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'warning')
     else:
         now = datetime.utcnow()
         db.session.add(AttendanceLog(
@@ -208,7 +227,9 @@ def do_signin():
         ))
         db.session.commit()
         user = db.session.get(User, uid)
-        flash(f'{user.username} 签到成功！', 'success')
+        msg = f'{user.username} 签到成功！'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg, 'user_id': uid, 'attendance_id': record.id, 'sign_in_time': (now + timedelta(hours=8)).strftime('%H:%M')})
+        flash(msg, 'success')
     return redirect(url_for('lab.checkin'))
 
 
@@ -217,13 +238,17 @@ def do_signin():
 def do_signout(id):
     record = Attendance.query.get_or_404(id)
     if not record.is_checked_in:
-        flash('未签到，无需签退。', 'warning')
+        msg = '未签到，无需签退。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'warning')
     else:
         log = record.logs.filter(AttendanceLog.sign_out_time == None).order_by(AttendanceLog.sign_in_time.desc()).first()
         if log:
             log.sign_out_time = datetime.utcnow()
             db.session.commit()
-            flash(f'{record.user.username} 签退成功（{log.duration_minutes} 分钟）。', 'success')
+            msg = f'{record.user.username} 签退成功（{log.duration_minutes} 分钟）。'
+            if request_is_api(): return jsonify({'ok': True, 'message': msg, 'user_id': record.user_id, 'attendance_id': record.id, 'duration_minutes': log.duration_minutes})
+            flash(msg, 'success')
     return redirect(url_for('lab.checkin'))
 
 
@@ -270,6 +295,9 @@ def checkin_stats():
 
     if json_api == 'ranking':
         return _ranking_data(dt_from, dt_to)
+
+    if json_api == 'overview':
+        return _overview_data(dt_from, dt_to)
 
     query = AttendanceLog.query.join(Attendance).filter(
         Attendance.date >= dt_from, Attendance.date <= dt_to
@@ -463,6 +491,55 @@ def _ranking_data(dt_from, dt_to):
         return jsonify({'ranking': ranking, 'period': {'from': dt_from.isoformat(), 'to': dt_to.isoformat()}})
     except Exception as e:
         return jsonify({'ranking': [], 'error': str(e)}), 500
+
+
+def _overview_data(dt_from, dt_to):
+    """返回总览数据 JSON（供前端 AJAX 刷新）"""
+    from collections import defaultdict as _dd
+    try:
+        logs = AttendanceLog.query.join(Attendance).filter(
+            Attendance.date >= dt_from, Attendance.date <= dt_to
+        ).order_by(AttendanceLog.sign_in_time.desc()).limit(300).all()
+
+        person_stats = _dd(lambda: {'days': set(), 'total_min': 0, 'count': 0, 'user_id': 0})
+        for log in logs:
+            key = log.attendance.user.username
+            person_stats[key]['days'].add(log.attendance.date)
+            person_stats[key]['total_min'] += log.duration_minutes
+            person_stats[key]['count'] += 1
+            person_stats[key]['user_id'] = log.attendance.user.id
+
+        # Convert sets to counts and compute avg
+        persons = []
+        for k, v in person_stats.items():
+            days = len(v['days'])
+            persons.append({
+                'name': k,
+                'user_id': v['user_id'],
+                'days': days,
+                'total_min': v['total_min'],
+                'count': v['count'],
+                'avg_min': round(v['total_min'] / max(days, 1)),
+            })
+        persons.sort(key=lambda x: x['total_min'], reverse=True)
+
+        all_days = set()
+        total_min_all = 0
+        for log in logs:
+            all_days.add(log.attendance.date)
+            total_min_all += log.duration_minutes
+
+        return jsonify({
+            'persons': persons,
+            'person_count': len(persons),
+            'total_days': len(all_days),
+            'total_min': total_min_all,
+            'avg_daily': round(total_min_all / max(len(all_days), 1)),
+            'avg_per_person': round(total_min_all / max(len(persons), 1)),
+            'period': {'from': dt_from.isoformat(), 'to': dt_to.isoformat()},
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def _chart_data(dt_from, dt_to, user_name):

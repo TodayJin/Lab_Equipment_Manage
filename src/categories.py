@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required
 from src.models import db, Category
 from src.forms import CategoryForm
-from src.helpers import log_operation, admin_required
+from src.helpers import log_operation, admin_required, request_is_api
 
 categories_bp = Blueprint('categories', __name__, url_prefix='/categories')
 
@@ -17,7 +17,9 @@ def index():
         db.session.flush()
         log_operation('create_category', 'category', category.id, category.name)
         db.session.commit()
-        flash('分类添加成功！', 'success')
+        msg = '分类添加成功！'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg, 'id': category.id, 'name': category.name})
+        flash(msg, 'success')
         return redirect(url_for('categories.index'))
 
     categories = Category.query.order_by(Category.name).all()
@@ -47,11 +49,15 @@ def edit(id):
 def delete(id):
     category = Category.query.get_or_404(id)
     if category.equipments.count() > 0:
-        flash('该分类下还有器材，无法删除。', 'danger')
+        msg = '该分类下还有器材，无法删除。'
+        if request_is_api(): return jsonify({'ok': False, 'message': msg})
+        flash(msg, 'danger')
     else:
         name = category.name
         db.session.delete(category)
         log_operation('delete_category', 'category', None, name)
         db.session.commit()
-        flash('分类已删除。', 'info')
+        msg = '分类已删除。'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg})
+        flash(msg, 'info')
     return redirect(url_for('categories.index'))

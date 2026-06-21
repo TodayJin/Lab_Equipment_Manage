@@ -1,9 +1,9 @@
 from datetime import datetime
-from flask import Blueprint, render_template, request, Response, redirect, url_for, flash
+from flask import Blueprint, render_template, request, Response, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 from src.models import db, StockRecord, Equipment, User, Category
-from src.helpers import admin_required, log_operation
+from src.helpers import admin_required, log_operation, request_is_api
 
 records_bp = Blueprint('records', __name__, url_prefix='/records')
 
@@ -30,7 +30,9 @@ def delete_record(id):
                        'before_stock': record.before_stock, 'after_stock': record.after_stock})
         db.session.delete(record)
         db.session.commit()
-        flash(f'已删除 {record.user.username} 的{record.type_display}记录：{equipment.name if equipment else "?"} ×{record.quantity}，库存已回退。', 'info')
+        msg = f'已删除 {record.user.username} 的{record.type_display}记录：{equipment.name if equipment else "?"} ×{record.quantity}，库存已回退。'
+        if request_is_api(): return jsonify({'ok': True, 'message': msg})
+        flash(msg, 'info')
     except Exception:
         db.session.rollback()
         flash('删除失败，请重试。', 'danger')

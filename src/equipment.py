@@ -1,9 +1,9 @@
 """ 器材管理 — CRUD + 排序 + 快捷搜索 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required
 from src.models import db, Equipment, Category, OperationLog
 from src.forms import EquipmentForm
-from src.helpers import log_operation, admin_required
+from src.helpers import log_operation, admin_required, request_is_api
 
 equipment_bp = Blueprint('equipment', __name__, url_prefix='/equipment')
 
@@ -149,5 +149,7 @@ def delete(id):
     log_operation('delete_equipment_cascade', 'equipment', None, name,
                   {'stock_records_deleted': stock_count, 'operation_logs_deleted': op_count})
     db.session.commit()
-    flash(f'已删除器材「{name}」及关联的 {stock_count} 条出入库记录、{op_count} 条操作日志。', 'info')
+    msg = f'已删除器材「{name}」及关联的 {stock_count} 条出入库记录、{op_count} 条操作日志。'
+    if request_is_api(): return jsonify({'ok': True, 'message': msg})
+    flash(msg, 'info')
     return redirect(url_for('equipment.index'))

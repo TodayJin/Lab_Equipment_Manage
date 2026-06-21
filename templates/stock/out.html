@@ -56,11 +56,10 @@
                         <span>数量: {{ r.quantity }}{{ r.equipment.unit }}</span>
                         <span class="text-muted small ms-2">{{ r.before_stock }} → {{ r.after_stock }}</span>
                     </div>
-                    <form method="POST" action="{{ url_for('stock.undo', record_id=r.id) }}" class="mt-1">
-                        <button class="btn btn-sm btn-outline-warning" onclick="return confirm('确定撤销此操作吗？')">
-                            <i class="bi bi-arrow-counterclockwise"></i> 撤销
-                        </button>
-                    </form>
+                    <button class="btn btn-sm btn-outline-warning mt-1"
+                            onclick="var btn=this;ajaxPost('{{ url_for('stock.undo', record_id=r.id) }}','确定撤销此操作吗？',function(){btn.closest('.undo-item').remove()})">
+                        <i class="bi bi-arrow-counterclockwise"></i> 撤销
+                    </button>
                 </div>
                 {% endfor %}
             </div>

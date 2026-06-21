@@ -45,10 +45,8 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% if current_user.is_admin %}
-                            <form method="POST" action="{{ url_for('categories.delete', id=cat.id) }}" class="d-inline"
-                                  onsubmit="return confirm('确定删除分类「{{ cat.name }}」吗？')">
-                                <button class="btn btn-sm btn-outline-danger" title="删除"><i class="bi bi-trash"></i></button>
-                            </form>
+                            <button class="btn btn-sm btn-outline-danger" title="删除"
+                                    onclick="var btn=this;ajaxPost('{{ url_for('categories.delete', id=cat.id) }}','确定删除分类「{{ cat.name }}」吗？',function(){btn.closest('tr').remove()})"><i class="bi bi-trash"></i></button>
                             {% endif %}
                         </td>
                     </tr>
