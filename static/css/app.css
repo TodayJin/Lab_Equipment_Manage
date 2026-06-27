@@ -1,5 +1,5 @@
 /* ============================================================
-   LabManager V3.3.0 — Materio-themed UI
+   LabManager V3.4.2 — Materio-themed UI + Responsive Scaling
    ============================================================ */
 :root{
 --pri:#8C57FF;--prib:#7E4EE6;--acc:#A379FF;
@@ -213,6 +213,9 @@ body{
 
 /* ===== TABLE ===== */
 .table-container{padding:0;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.72);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border:1px solid transparent;box-shadow:var(--shm)}
+.table-responsive-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
+.table-responsive-wrap table{min-width:680px}
+html.dark .table-responsive-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15)}
 html.dark .table-container{background:rgba(44,44,46,.55);border-color:rgba(255,255,255,.08)}
 .table{margin:0;font-size:13px;border-collapse:separate;border-spacing:0}
 .table thead th:first-child{border-radius:18px 0 0 0}
@@ -298,28 +301,128 @@ html.dark .table-container{background:rgba(44,44,46,.55);border-color:rgba(255,2
  box-shadow:0px 4px 10px rgb(46 38 61 / .2);min-width:300px;
 }
 
-/* ===== RESPONSIVE ===== */
-@media(max-width:767px){
- .sidebar-mobile-toggle{display:flex}
- .sidebar{position:fixed;left:-260px;margin-left:0;transition:left .3s ease-in-out}
- .sidebar.open{left:0}
- .sidebar.collapsed{margin-left:0}
- .sidebar.collapsed .sidebar-collapse-btn{position:static;width:28px;height:28px;border-radius:6px;background:transparent;color:var(--ts);box-shadow:none}
- .sidebar.collapsed .sidebar-collapse-btn:hover{background:rgba(46,38,61,.04);color:var(--tp)}
- .sidebar.collapsed .sidebar-collapse-btn i{transform:none}
- .sidebar.collapsed + .main-content{margin-left:0}
- .sidebar-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99;opacity:0;pointer-events:none;transition:opacity .3s}
- .sidebar-overlay.show{opacity:1;pointer-events:auto}
- .topbar{margin:0;border-radius:0;position:sticky;top:0}
- .topbar-toggle{display:flex}
- .main-content{margin-left:0!important}
- .stats-grid{grid-template-columns:1fr 1fr}
- .dash-panel+.dash-panel{margin-top:24px}
- .content-area{padding:16px}
- .page-title{font-size:16px}
+/* ===== 自适应缩放 (Responsive Scaling) ===== */
+
+/* ≥1800px: 超大屏 — 内容区域最大宽度限制 */
+@media(min-width:1800px){
+  .content-area{max-width:1600px;margin:0 auto;width:100%}
 }
+
+/* 1200-1399px: 小桌面 — 三列统计+缩小间距 */
+@media(max-width:1399px){
+  .stats-grid{grid-template-columns:repeat(3,1fr);gap:20px}
+  .stat-card{padding:24px 20px}
+  .stat-value{font-size:30px}
+}
+
+/* 992-1199px: 平板横屏/小笔记本 — 两列统计+紧凑 */
+@media(max-width:1199px){
+  :root{--sidebar-w:240px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:16px}
+  .stat-icon{width:52px;height:52px;font-size:24px;border-radius:14px}
+  .stat-value{font-size:26px;font-weight:700}
+  .stat-label{font-size:13px}
+  .content-area{padding:24px}
+  .topbar{margin:16px 16px 0;padding:0 20px;height:60px}
+  .page-title{font-size:18px}
+  .filter-bar{padding:14px 20px;gap:12px}
+  .dash-grid{grid-template-columns:1fr;gap:16px}
+  .table thead th{padding:12px 16px;font-size:12px}
+  .table tbody td{padding:12px 16px}
+  .panel-head{padding:16px 20px;font-size:15px}
+}
+
+/* 768-991px: 平板竖屏 — 侧边栏抽屉式+全面紧凑 */
+@media(max-width:991px){
+  :root{--sidebar-w:240px}
+  .sidebar{position:fixed;left:-240px;margin-left:0;transition:left .3s ease-in-out}
+  .sidebar.open{left:0}
+  .sidebar.collapsed{margin-left:0}
+  .sidebar.collapsed .sidebar-collapse-btn{position:static;width:28px;height:28px;border-radius:6px;background:transparent;color:var(--ts);box-shadow:none}
+  .sidebar.collapsed .sidebar-collapse-btn:hover{background:rgba(46,38,61,.04);color:var(--tp)}
+  .sidebar.collapsed .sidebar-collapse-btn i{transform:none}
+  .sidebar.collapsed + .main-content{margin-left:0}
+  .sidebar-overlay{display:block}
+  .sidebar-mobile-toggle{display:flex}
+  .topbar-toggle{display:flex}
+  .main-content{margin-left:0!important}
+  .content-area{padding:20px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:14px}
+  .stat-card{padding:20px 18px}
+  .stat-value{font-size:24px}
+  .stat-icon{width:48px;height:48px;font-size:22px}
+  .h-tabs{overflow-x:auto;width:100%;border-radius:14px;padding:4px}
+  .h-tab{padding:8px 18px;font-size:13px;white-space:nowrap}
+  .chat-msg{max-width:85%}
+  .filter-bar{flex-direction:column;align-items:stretch}
+  .topbar{padding:0 16px;height:56px}
+  .topbar-right{gap:8px}
+  .table thead th{padding:10px 14px;font-size:12px}
+  .table tbody td{padding:10px 14px;font-size:12.5px}
+  .dash-grid{gap:14px}
+  .btn{padding:9px 18px;font-size:14px}
+  .btn-sm{padding:6px 14px;font-size:12.5px}
+  .form-control,.form-select{padding:9px 14px;font-size:14px}
+}
+
+/* ≤767px: 手机 — 全面紧凑 */
+@media(max-width:767px){
+  .sidebar-mobile-toggle{display:flex}
+  .sidebar{position:fixed;left:-260px;margin-left:0;transition:left .3s ease-in-out}
+  .sidebar.open{left:0}
+  .sidebar.collapsed{margin-left:0}
+  .sidebar.collapsed .sidebar-collapse-btn{position:static;width:28px;height:28px;border-radius:6px;background:transparent;color:var(--ts);box-shadow:none}
+  .sidebar.collapsed .sidebar-collapse-btn:hover{background:rgba(46,38,61,.04);color:var(--tp)}
+  .sidebar.collapsed .sidebar-collapse-btn i{transform:none}
+  .sidebar.collapsed + .main-content{margin-left:0}
+  .sidebar-overlay{display:block}
+  .topbar{margin:0;border-radius:0;position:sticky;top:0}
+  .topbar-toggle{display:flex}
+  .main-content{margin-left:0!important}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .stat-card{padding:18px 16px;gap:14px}
+  .stat-icon{width:44px;height:44px;border-radius:14px;font-size:20px}
+  .stat-value{font-size:22px}
+  .stat-label{font-size:12px}
+  .dash-panel+.dash-panel{margin-top:16px}
+  .content-area{padding:12px}
+  .page-title{font-size:16px}
+  .topbar{padding:0 12px;height:52px}
+  .topbar-right{gap:6px}
+  .btn{padding:8px 14px;font-size:13px;border-radius:12px}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:10px}
+  .table thead th{padding:8px 10px;font-size:11px}
+  .table tbody td{padding:8px 10px;font-size:11.5px}
+  .table-container{border-radius:12px}
+  .chat-msg{max-width:95%}
+  .chat-image{max-width:160px}
+  .chat-messages{padding:12px;max-height:45vh}
+  .filter-bar{padding:12px 14px;gap:10px}
+  .panel-head{padding:12px 14px;font-size:14px}
+  .dash-grid{gap:12px}
+  .form-control,.form-select{padding:8px 12px;font-size:13px}
+  .auth-card{padding:28px 20px}
+  .page-title{font-size:16px}
+  .h-tab{padding:6px 14px;font-size:12px}
+}
+
 @media(max-width:576px){
- .stats-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr;gap:10px}
+  .topbar-right .quick-checkin .checkin-time{display:none}
+  .topbar-right .btn span.label-text{display:none}
+  .h-tab{padding:6px 12px;font-size:12px}
+  .auth-card{padding:24px 16px}
+  .filter-bar{padding:10px 12px}
+  .dash-grid{gap:10px}
+}
+
+/* 响应式表格：小屏时横向滚动 */
+@media(max-width:991px){
+  .table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-container table{min-width:600px}
+}
+@media(max-width:767px){
+  .table-container table{min-width:480px}
 }
 
 /* ===== MISC ===== */
